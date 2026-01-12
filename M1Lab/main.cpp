@@ -12,4 +12,5 @@ int main() {
     const float PRICE_PER_APPLE = 0.25f;
 
     std::cout << "Welcome to " << NAME << "'s apple orchard." << std::endl;
+    return 0;
 }
