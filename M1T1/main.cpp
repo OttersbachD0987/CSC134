@@ -19,5 +19,9 @@ int main(int argc, char** argv) {
     } else {
         std::cout << "No arguments provided." << std::endl;
     }
+    std::string userInput;
+    std::cout << "Input your name here: ";
+    std::cin >> userInput;
+    std::cout << "Your name is " << userInput << "." << std::endl;
     return 0;
 }
