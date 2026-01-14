@@ -7,11 +7,7 @@
 #include <iomanip>
 #include <stdint.h>
 
-
-
-
-
-int main() {
+int main(int argc, char** argv) {
     std::string name;
     int32_t apples;
     float pricePerApple;

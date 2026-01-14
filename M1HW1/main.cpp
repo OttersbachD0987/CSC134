@@ -11,7 +11,7 @@ const std::string NAME = "Jane Smith";
 const int32_t DATE = 100;
 const float GROSS = 0.25f;
 
-int main() {
+int main(int argc, char** argv) {
     std::cout << "The movie " << NAME << " is ." << std::endl;
     std::cout << NAME << " came out in " << DATE << "." << std::endl;
     std::cout << NAME << " had a worldwide gross of $" << std::setprecision(2) << GROSS << "." << std::endl;

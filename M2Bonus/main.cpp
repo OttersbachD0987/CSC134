@@ -21,7 +21,7 @@ const float PIZZA_RADIUS = PIZZA_DIAMETER / 2;
 const float PIZZA_AREA = M_PI * PIZZA_RADIUS * PIZZA_RADIUS;
 const float PIZZA_SLICE_AREA = PIZZA_AREA / 8;
 
-int main() {
+int main(int argc, char** argv) {
     std::cout << "Problem 1" << std::endl;
     std::cout << "Area = " << RECT_AREA << "m^2" << std::endl;
     std::cout << "Problem 2" << std::endl;

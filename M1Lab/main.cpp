@@ -11,7 +11,7 @@ const std::string NAME = "Jane Smith";
 const int32_t APPLES = 100;
 const float PRICE_PER_APPLE = 0.25f;
 
-int main() {
+int main(int argc, char** argv) {
     float totalCost = APPLES * PRICE_PER_APPLE;
 
     std::cout << "Welcome to " << NAME << "'s apple orchard." << std::endl;

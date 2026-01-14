@@ -5,16 +5,28 @@
 
 #include <iostream>
 
-const float PRODUCT_PRICE = 5.99f;
-const float SALES_TAX_PERCENT = 0.08f;
-const float SALES_TAX = PRODUCT_PRICE * SALES_TAX_PERCENT;
-const float FINAL_COST = PRODUCT_PRICE + SALES_TAX;
+const float CRATE_PRICE_PER_CUBIC_METER = 0.23f;
+const float CRATE_CHARGE_PER_CUBIC_METER = 0.5f;
 
-int main() {
-    std::cout << "RECEIPT" << std::endl;
-    std::cout << "Product Price: $" << PRODUCT_PRICE << "." << std::endl;
-    std::cout << "Sales Tax: $" << SALES_TAX << "." << std::endl;
-    std::cout << "Final Cost: $" << FINAL_COST << "." << std::endl;
+int main(int argc, char** argv) {
+    float crateLength;
+    float crateWidth;
+    float crateHeight;
+    std::cout << "Crate Length: " << std::endl;
+    std::cin >> crateLength;
+    std::cout << "Crate Width: " << std::endl;
+    std::cin >> crateWidth;
+    std::cout << "Crate Height: " << std::endl;
+    std::cin >> crateHeight;
+    float crateVolume = crateLength * crateWidth * crateHeight;
+    float crateCost = crateVolume * CRATE_PRICE_PER_CUBIC_METER;
+    float customersCharge = crateVolume * CRATE_CHARGE_PER_CUBIC_METER;
+    float crateProfit = customersCharge - crateCost;
+
+    std::cout << "Crate Volume: " << crateVolume << "m^3." << std::endl;
+    std::cout << "Crate Cost: $" << crateCost << "." << std::endl;
+    std::cout << "Customer's Charge: $" << customersCharge << "." << std::endl;
+    std::cout << "Profit: $" << crateProfit << "." << std::endl;
     return 0;
 }
 
