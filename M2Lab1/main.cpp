@@ -24,10 +24,11 @@ int main(int argc, char** argv) {
     float customersCharge = crateVolume * CRATE_CHARGE_PER_CUBIC_METER;
     float crateProfit = customersCharge - crateCost;
 
+    std::cout << std::setprecision(2) << std::fixed;
     std::cout << "Crate Volume: " << crateVolume << "m^3." << std::endl;
-    std::cout << "Crate Cost: $" << std::setprecision(2) << std::fixed << crateCost << "." << std::endl;
-    std::cout << "Customer's Charge: $" << std::setprecision(2) << std::fixed << customersCharge << "." << std::endl;
-    std::cout << "Profit: $" << std::setprecision(2) << std::fixed << crateProfit << "." << std::endl;
+    std::cout << "Crate Cost: $" << crateCost << "." << std::endl;
+    std::cout << "Customer's Charge: $" << customersCharge << "." << std::endl;
+    std::cout << "Profit: $" << crateProfit << "." << std::endl;
     return 0;
 }
 
