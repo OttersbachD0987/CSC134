@@ -1,0 +1,3 @@
+[submodule "CMakeProjectTest/vcpkg"]
+	path = CMakeProjectTest/vcpkg
+	url = https://www.github.com/microsoft/vcpkg.git

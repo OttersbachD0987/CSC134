@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
 
     std::cout << "Welcome to " << name << "'s apple orchard." << std::endl;
     std::cout << "We have " << apples << " apples in stock." << std::endl;
-    std::cout << "Apples are currently $" << std::setprecision(2) << pricePerApple << " each." << std::endl;
-    std::cout << "If you want them all, that will be $" << totalCost << "." << std::endl;
+    std::cout << "Apples are currently $" << std::setprecision(2) << std::fixed << pricePerApple << " each." << std::endl;
+    std::cout << "If you want them all, that will be $" << std::setprecision(2) << std::fixed << totalCost << "." << std::endl;
     return 0;
 }

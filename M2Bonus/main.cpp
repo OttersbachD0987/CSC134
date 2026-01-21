@@ -6,6 +6,7 @@
 #define _USE_MATH_DEFINES
 
 #include <iostream>
+#include <iomanip>
 #include <stdint.h>
 #include <math.h>
 
@@ -25,9 +26,9 @@ int main(int argc, char** argv) {
     std::cout << "Problem 1" << std::endl;
     std::cout << "Area = " << RECT_AREA << "m^2" << std::endl;
     std::cout << "Problem 2" << std::endl;
-    std::cout << "Product Price: $" << PRODUCT_PRICE << "." << std::endl;
-    std::cout << "Sales Tax: $" << SALES_TAX << "." << std::endl;
-    std::cout << "Final Cost: $" << FINAL_COST << "." << std::endl;
+    std::cout << "Product Price: $" << std::setprecision(2) << std::fixed << PRODUCT_PRICE << "." << std::endl;
+    std::cout << "Sales Tax: $" << std::setprecision(2) << std::fixed << SALES_TAX << "." << std::endl;
+    std::cout << "Final Cost: $" << std::setprecision(2) << std::fixed << FINAL_COST << "." << std::endl;
     std::cout << "Problem 3" << std::endl;
     std::cout << "Pizza Area: " << PIZZA_AREA << "ft^2." << std::endl;
     std::cout << "Problem 4" << std::endl;

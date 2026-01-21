@@ -4,6 +4,7 @@
 // 1/14/2026
 
 #include <iostream>
+#include <iomanip>
 
 const float CRATE_PRICE_PER_CUBIC_METER = 0.23f;
 const float CRATE_CHARGE_PER_CUBIC_METER = 0.5f;
@@ -24,9 +25,9 @@ int main(int argc, char** argv) {
     float crateProfit = customersCharge - crateCost;
 
     std::cout << "Crate Volume: " << crateVolume << "m^3." << std::endl;
-    std::cout << "Crate Cost: $" << crateCost << "." << std::endl;
-    std::cout << "Customer's Charge: $" << customersCharge << "." << std::endl;
-    std::cout << "Profit: $" << crateProfit << "." << std::endl;
+    std::cout << "Crate Cost: $" << std::setprecision(2) << std::fixed << crateCost << "." << std::endl;
+    std::cout << "Customer's Charge: $" << std::setprecision(2) << std::fixed << customersCharge << "." << std::endl;
+    std::cout << "Profit: $" << std::setprecision(2) << std::fixed << crateProfit << "." << std::endl;
     return 0;
 }
 
