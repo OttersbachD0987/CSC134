@@ -15,9 +15,10 @@ const float PRICE_PER_ITEM = 0.20f;
 int main(int argc, char** argv) {
     float totalCost = ITEM_COUNT * PRICE_PER_ITEM;
 
+    std::cout << std::setprecision(2) << std::fixed;
     std::cout << "Welcome to " << MERCHANT_NAME << "'s " << ITEM_NAME << " store." << std::endl;
     std::cout << "We have " << ITEM_COUNT << " " << ITEM_NAME << " in stock." << std::endl;
-    std::cout << ITEM_NAME << " are currently $" << std::setprecision(2) << std::fixed << PRICE_PER_ITEM << " each." << std::endl;
-    std::cout << "If you want them all, that will be $" << std::setprecision(2) << std::fixed << totalCost << "." << std::endl;
+    std::cout << ITEM_NAME << " are currently $" << PRICE_PER_ITEM << " each." << std::endl;
+    std::cout << "If you want them all, that will be $" << totalCost << "." << std::endl;
     return 0;
 }
