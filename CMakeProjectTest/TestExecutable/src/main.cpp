@@ -1,4 +1,6 @@
+#include <iostream>
 
-int main(int charc, char** argv) {
-    return 0;
+int main(int charc, char **argv) {
+  std::cout << "All thyne armies. Or whatever.\n";
+  return 0;
 }
