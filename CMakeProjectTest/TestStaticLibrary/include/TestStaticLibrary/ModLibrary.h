@@ -2,7 +2,7 @@
 #ifndef TEST_STATIC_LIBRARY__MOD_LIBRARY_H
 #define TEST_STATIC_LIBRARY__MOD_LIBRARY_H
 #include <cstdlib>
-#include <stdint.h>
+#include <cstdint>
 #include <string>
 #include <vector>
 

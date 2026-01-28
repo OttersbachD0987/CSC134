@@ -39,7 +39,13 @@ namespace TestStaticLibrary {
         }
     }
 
+    
+    void ModAPI::RegisterSystem(std::string_view a_id, AnyFnptr a_function) {
+        systems.emplace(a_id, a_function);
+    }
+
     void ModAPI::Destroy(void) {
         mods.clear();
+        systems.clear();
     }
 }
