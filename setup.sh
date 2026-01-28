@@ -1,2 +1,2 @@
-export CC = "gcc"
-export CXX = "g++"
+export CC="gcc"
+export CXX="g++"

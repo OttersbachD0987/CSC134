@@ -1,7 +1,7 @@
 // CSC 134
 // M2LAB1
 // Daley Ottersbach
-// 1/14/2026
+// 1/28/2026
 
 #include <iostream>
 #include <iomanip>
@@ -13,11 +13,11 @@ int main(int argc, char** argv) {
     float crateLength;
     float crateWidth;
     float crateHeight;
-    std::cout << "Crate Length: " << std::endl;
+    std::cout << "Crate Length: ";
     std::cin >> crateLength;
-    std::cout << "Crate Width: " << std::endl;
+    std::cout << "Crate Width: ";
     std::cin >> crateWidth;
-    std::cout << "Crate Height: " << std::endl;
+    std::cout << "Crate Height: ";
     std::cin >> crateHeight;
     float crateVolume = crateLength * crateWidth * crateHeight;
     float crateCost = crateVolume * CRATE_PRICE_PER_CUBIC_METER;

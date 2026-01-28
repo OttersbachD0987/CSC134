@@ -29,5 +29,24 @@
             "configurePreset": "x64",
             "configuration": "Release"
         }
+    ],
+    "workflowPresets": [
+        {
+            "name": "x64-all",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "x64"
+                },
+                {
+                    "type": "build",
+                    "name": "x64-release"
+                },
+                {
+                    "type": "build",
+                    "name": "x64-debug"
+                }
+            ]
+        }
     ]
 }
