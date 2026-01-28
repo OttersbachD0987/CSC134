@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
-set(a_outputDirectory ".")
+set(a_outputDirectory "Mods")
 
 find_package(platform_folders CONFIG REQUIRED)
 
