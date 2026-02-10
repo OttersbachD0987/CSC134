@@ -1,5 +1,31 @@
 {
   "dependencies": [
-    "platform-folders"
+    {
+      "name": "imgui",
+      "default-features": false,
+      "features": [
+        "docking-experimental",
+        "freetype",
+        "sdl3-binding",
+        "sdl3-renderer-binding"
+      ]
+    },
+    {
+      "name": "sdl3",
+      "default-features": true,
+      "features": [
+        "vulkan"
+      ]
+    },
+    {
+      "name": "sdl3-image",
+      "default-features": true,
+      "features": [
+        "png"
+      ]
+    },
+    "sdl3-ttf",
+    "platform-folders",
+    "json5-parser"
   ]
 }

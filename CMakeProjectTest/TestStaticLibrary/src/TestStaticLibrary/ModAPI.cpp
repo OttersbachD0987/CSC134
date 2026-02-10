@@ -1,5 +1,6 @@
 #include <TestStaticLibrary/ModAPI.h>
 
+
 namespace TestStaticLibrary {
     ModAPI::ModAPI(void) {
         this->mods = std::unordered_map<std::string, Mod>();

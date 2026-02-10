@@ -14,18 +14,24 @@ int main(int argc, char** argv) {
     
     //dieSixDistrubtion(generator) + dieSixDistrubtion(generator);
 
+    std::cout << "CRAPS" << std::endl;
+
     bool win = false;
     bool running = true;
     int32_t roll = dieSixDistrubtion(generator) + dieSixDistrubtion(generator);
     int32_t points = roll;
+    std::cout << "You rolled a " << roll << "." << std::endl;
     switch (roll) {
         case 7:
         case 11:
             win = true;
             goto postGame;
     }
+    std::cout << "Your target points are " << points << std::endl;
     while (running) {
         roll = dieSixDistrubtion(generator) + dieSixDistrubtion(generator);
+        std::cout << "You rolled a " << roll << ".";
+        std::cin.get();
         if (roll == points) {
             win = true;
             running = false;
@@ -37,9 +43,9 @@ int main(int argc, char** argv) {
     }
     postGame:
     if (win) {
-        std::cout << "You have won." << std::endl;
+        std::cout << "You won." << std::endl;
     } else {
-        std::cout << "You have lost." << std::endl;
+        std::cout << "You rolled a 7, that's a loss." << std::endl;
     }
 
     return 0;

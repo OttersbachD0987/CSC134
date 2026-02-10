@@ -1,7 +1,6 @@
 import turtle
 from turtle import Turtle, _Screen
 from typing import Callable
-import random
 import math
 
 def DrawNGon(a_turtle: Turtle, a_sideCount: int, a_sideSize: int) -> None:
@@ -292,6 +291,7 @@ def DrawText(a_turtle: Turtle, a_bottomLeft: tuple[int, int], a_fontSize: int, a
                 a_turtle.right(135)
                 a_turtle.forward(a_fontSize)
 
+
 def Main() -> None:
     turtle.setup(800, 800)
     window: _Screen = turtle.Screen()
@@ -300,12 +300,16 @@ def Main() -> None:
     ross.speed(0)
     ross.color("#00a0bf")
     ross.pensize(3)
+   
+    ross.color("#0090af")
+    DrawText(ross, (-302, -2), 18, 6, "abcdefghijklmnopqrstuvwxyz")
+    ross.color("#00a0bf")
     DrawText(ross, (-300, 0), 18, 6, "abcdefghijklmnopqrstuvwxyz")
-    
+   
     ross.teleport(-100, -100)
-    
+   
     #[DrawNGon(ross, i, 50) for i in range(3, 100)]
-    
+   
     turtle.exitonclick()
 
 if __name__ == "__main__":
