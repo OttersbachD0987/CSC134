@@ -26,6 +26,14 @@ int main(int argc, char** argv) {
     std::cout << std::setprecision(2) << std::fixed;
     std::cout << "Rectangle One Area: " << rectangleOneArea << "m^2." << std::endl;
     std::cout << "Rectangle Two Area: " << rectangleTwoArea << "m^2." << std::endl;
+
+    if (rectangleOneArea > rectangleTwoArea) {
+        std::cout << "Rectangle One is larger than Rectangle Two." << std::endl;
+    } else  if (rectangleOneArea < rectangleTwoArea) {
+        std::cout << "Rectangle Two is larger than Rectangle One." << std::endl;
+    } else {
+        std::cout << "Rectangle One is has the same area as Rectangle Two." << std::endl;
+    }
     return 0;
 }
 
