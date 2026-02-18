@@ -76,16 +76,44 @@ struct ItemStack {
 public:
     size_t itemID;
     uint32_t stackSize;
+
+    ItemStack(void) {
+        this->itemID = 0;
+        this->stackSize = 0;
+    }
+
+    ItemStack(size_t a_itemID, uint32_t a_stackSize) {
+        this->itemID = a_itemID;
+        this->stackSize = a_stackSize;
+    }
 };
 
 struct PlayerData : public EntityData {
 public:
-    PlayerData(void) : EntityData() {
+    std::vector<ItemStack> items;
 
+    PlayerData(void) : EntityData() {
+        this->items = std::vector<ItemStack>();
     }
 
     PlayerData(const EntityTemplate* const a_entityTemplate) : EntityData(a_entityTemplate) {
+        this->items = std::vector<ItemStack>();
+    }
 
+    void UseItem(size_t a_index) {
+        if (--items[a_index].stackSize <= 0) {
+            items.erase(items.begin() + a_index);
+        }
+    }
+
+    void AddItem(size_t a_itemID, uint32_t a_itemAmount) {
+        for (size_t i = 0; i < items.size(); ++i) {
+            if (items[i].itemID == a_itemID) {
+                items[i].stackSize += a_itemAmount;
+                return;
+            }
+        }
+        items.push_back(ItemStack(a_itemID, a_itemAmount));
     }
 };
 
@@ -144,6 +172,7 @@ enum class Menu {
     PAUSE,
     MOVING,
     STATS,
+    INVENTORY,
     NONE
 };
 
@@ -187,7 +216,9 @@ int main(int argc, char** argv) {
     };
 
     const ItemData ITEM_DATA[] = {
-        ItemData("Bean", "A single bean, you may only have 0b11111111 beans.", 0b11111111)
+        ItemData("Bean", "A single bean, you may only have 0b11111111 beans.", 0b11111111),
+        ItemData("HP Potion", "A HP Potion, restores 20 HP.", 100),
+        ItemData("Mana Potion", "A Mana Potion, restores 20 Mana.", 100)
     };
 
     const std::array<RoomData, 5> ROOM_DATA = {
@@ -226,6 +257,8 @@ int main(int argc, char** argv) {
                     case 1:
                         gameState.screen = Screen::GAME;
                         gameState.PushBackRoom(0);
+                        gameState.player.AddItem(1, 10);
+                        gameState.player.AddItem(2, 10);
                         break;
                     case 2:
                         gameState.running = false;
@@ -244,7 +277,7 @@ int main(int argc, char** argv) {
                             << ROOM_DATA[room->roomID].roomName 
                             << " <<<\n\n>" 
                             << ROOM_DATA[room->roomID].roomDescription 
-                            << "<\n\nActions:\n1) Move\n2) Stats\n\nOption: ";
+                            << "<\n\nActions:\n1) Move\n2) Stats\n3) Inventory\n\nOption: ";
                         SafeInput<uint32_t>(choice);
                         switch (choice) {
                             case 1:
@@ -252,6 +285,9 @@ int main(int argc, char** argv) {
                                 break;
                             case 2:
                                 gameState.menu = Menu::STATS;
+                                break;
+                            case 3:
+                                gameState.menu = Menu::INVENTORY;
                                 break;
                         }
                         break;
@@ -278,7 +314,31 @@ int main(int argc, char** argv) {
                             << gameState.player.curMana << "/" << gameState.player.maxMana 
                             << std::endl;
                         std::cin.get();
+                        std::cin.get();
                         gameState.menu = Menu::NONE;
+                        break;
+                    case Menu::INVENTORY:
+                        std::cout << "-------------------------------\nInventory:\n";
+                        for (size_t inventoryItem = 0; inventoryItem < gameState.player.items.size();) {
+                            std::cout << ++inventoryItem << ") "  << ITEM_DATA[gameState.player.items[inventoryItem - 1].itemID].name << " x" << gameState.player.items[inventoryItem - 1].stackSize << "/" << ITEM_DATA[gameState.player.items[inventoryItem - 1].itemID].maxStack << "\n -" << ITEM_DATA[gameState.player.items[inventoryItem - 1].itemID].description << "\n";
+                        }
+                        std::cout << "\nOption: ";
+
+                        SafeInput<uint32_t>(choice);
+
+                        if (--choice < gameState.player.items.size()) {
+                            switch (gameState.player.items[choice].itemID) {
+                                case 1:
+                                    gameState.player.curHP = std::min(gameState.player.curHP + 20, gameState.player.maxHP);
+                                    gameState.player.UseItem(choice); 
+                                    break;
+                                case 2:
+                                    gameState.player.curMana = std::min(gameState.player.curMana + 20, gameState.player.maxMana);
+                                    gameState.player.UseItem(choice);
+                                    break;
+                            }
+                            gameState.menu = Menu::NONE;
+                        }
                         break;
                 }
                 break;
