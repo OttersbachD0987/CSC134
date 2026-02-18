@@ -11,6 +11,10 @@ set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
 set(a_outputDirectory ".")
 
 find_package(platform_folders CONFIG REQUIRED)
+find_package(SDL3 CONFIG REQUIRED)
+find_package(SDL3_image CONFIG REQUIRED)
+find_package(SDL3_ttf CONFIG REQUIRED)
+find_package(imgui CONFIG REQUIRED)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_compile_definitions(__DEBUG_ASSERTS__)
@@ -25,7 +29,12 @@ target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/i
 target_link_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 target_link_libraries(${PROJECT_NAME} PRIVATE 
-    sago::platform_folders TestStaticLibrary)
+    SDL3::SDL3
+    $<IF:$<TARGET_EXISTS:SDL3_image::SDL3_image-shared>,SDL3_image::SDL3_image-shared,SDL3_image::SDL3_image-static>
+    SDL3_ttf::SDL3_ttf
+    imgui::imgui
+    sago::platform_folders
+    TestStaticLibrary)
 
 source_group(
     TREE "${PROJECT_SOURCE_DIR}/${PROJECT_NAME}"
