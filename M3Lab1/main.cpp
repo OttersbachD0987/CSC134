@@ -36,8 +36,8 @@ struct EntityData;
 struct Action {
 public:
     std::string name;
-    std::function<bool(EntityData*, EntityData*)> condition;
-    std::function<void(EntityData*, EntityData*)> action;
+    std::function<bool(EntityData*, EntityData*)> condition = [](EntityData* a_source, EntityData* a_target) { return true; };
+    std::function<void(EntityData*, EntityData*)> action = [](EntityData* a_source, EntityData* a_target) {};
 };
 
 struct EntityTemplate {
@@ -163,9 +163,9 @@ public:
 
 struct ConnectionTest {
 public:
-    std::function<bool(PlayerData*)> condition = nullptr;
-    std::function<void(PlayerData*, bool)> conditionDisplay = nullptr;
-    std::function<void(PlayerData*)> action = nullptr;
+    std::function<bool(PlayerData*)> condition = [](PlayerData* a_player) { return true; };
+    std::function<void(PlayerData*, bool)> conditionDisplay = [](PlayerData* a_player, bool a_success) { };
+    std::function<void(PlayerData*)> action = [](PlayerData* a_player) { };
 };
 
 struct RoomData {
@@ -188,6 +188,8 @@ public:
         this->maxExisting = a_maxExisting;
         this->minNew = a_minNew;
         this->maxNew = a_maxNew;
+        this->toConnection = a_to;
+        this->fromConnection = a_from;
     }
 };
 
