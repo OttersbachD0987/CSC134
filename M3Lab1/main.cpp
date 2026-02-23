@@ -31,14 +31,25 @@ std::uniform_int_distribution<uint32_t> DIE_TEN_DISTRIBUTION    = std::uniform_i
 std::uniform_int_distribution<uint32_t> DIE_TWELVE_DISTRIBUTION = std::uniform_int_distribution<uint32_t>(1, 12);
 std::uniform_int_distribution<uint32_t> DIE_TWENTY_DISTRIBUTION = std::uniform_int_distribution<uint32_t>(1, 20);
 
+struct EntityData;
+
+struct Action {
+public:
+    std::string name;
+    std::function<bool(EntityData*, EntityData*)> condition;
+    std::function<void(EntityData*, EntityData*)> action;
+};
+
 struct EntityTemplate {
 public:
     uint32_t hp;
     uint32_t mana;
+    std::vector<Action> actions;
 
-    EntityTemplate(uint32_t a_hp, uint32_t a_mana) {
+    EntityTemplate(uint32_t a_hp, uint32_t a_mana, std::vector<Action> a_actions) {
         this->hp = a_hp;
         this->mana = a_mana;
+        this->actions = a_actions;
     }
 };
 
@@ -48,6 +59,7 @@ public:
     uint32_t curHP;
     uint32_t maxMana;
     uint32_t curMana;
+    std::vector<Action> actions;
 
     EntityData(void) {
         this->maxHP = this->curHP = this->maxMana = this->curMana = 0;
@@ -56,6 +68,7 @@ public:
     EntityData(const EntityTemplate* const a_entityTemplate) {
         this->maxHP = this->curHP = a_entityTemplate->hp;
         this->maxMana = this->curMana = a_entityTemplate->mana;
+        this->actions = a_entityTemplate->actions;
     }
 };
 
@@ -115,17 +128,44 @@ public:
         }
         items.push_back(ItemStack(a_itemID, a_itemAmount));
     }
+
+    bool HasItem(size_t a_itemID, uint32_t a_itemAmount) {
+        for (size_t i = 0; i < items.size(); ++i) {
+            if (items[i].itemID == a_itemID) {
+                return a_itemAmount <= items[i].stackSize;
+            }
+        }
+        return false;
+    }
+};
+
+struct NPCTemplate {
+public:
+    std::string name;
+
+    NPCTemplate(std::string_view a_name) {
+        this->name = a_name;
+    }
 };
 
 struct NPCData : public EntityData {
 public:
+    std::string name;
+
     NPCData(void) : EntityData() {
-        
+        this->name = "Unknown";
     }
 
-    NPCData(const EntityTemplate* const a_entityTemplate) : EntityData(a_entityTemplate) {
-
+    NPCData(const EntityTemplate* const a_entityTemplate, const NPCTemplate* const a_npcTemplate) : EntityData(a_entityTemplate) {
+        this->name = a_npcTemplate->name;
     }
+};
+
+struct ConnectionTest {
+public:
+    std::function<bool(PlayerData*)> condition = nullptr;
+    std::function<void(PlayerData*, bool)> conditionDisplay = nullptr;
+    std::function<void(PlayerData*)> action = nullptr;
 };
 
 struct RoomData {
@@ -137,8 +177,10 @@ public:
     uint32_t maxExisting;
     uint32_t minNew;
     uint32_t maxNew;
+    ConnectionTest toConnection;
+    ConnectionTest fromConnection;
 
-    RoomData(std::string_view a_name, std::string_view a_description, bool a_backlink, uint32_t a_minExisting, uint32_t a_maxExisting, uint32_t a_minNew, uint32_t a_maxNew) {
+    RoomData(std::string_view a_name, std::string_view a_description, bool a_backlink, uint32_t a_minExisting, uint32_t a_maxExisting, uint32_t a_minNew, uint32_t a_maxNew, ConnectionTest a_to = ConnectionTest(), ConnectionTest a_from = ConnectionTest()) {
         this->roomName = a_name;
         this->roomDescription = a_description;
         this->backlink = a_backlink;
@@ -149,17 +191,27 @@ public:
     }
 };
 
+struct ConnectionTemplate {
+public:
+    ConnectionTest currentTest;
+    ConnectionTest arrivalTest;
+};
+
+struct ConnectionInstance;
+
 struct RoomInstance {
 public:
     bool initialized = false;
     size_t roomID;
     size_t roomIndex;
-    std::vector<size_t> connections;
+    std::vector<ConnectionInstance> connections;
+    std::vector<NPCData> inhabitants;
 
     RoomInstance(size_t a_roomID, size_t a_roomIndex) {
         this->roomID = a_roomID;
         this->roomIndex = a_roomIndex;
-        this->connections = std::vector<size_t>();
+        this->connections = std::vector<ConnectionInstance>();
+        this->inhabitants = std::vector<NPCData>();
     }
 };
 
@@ -187,13 +239,26 @@ public:
     std::vector<RoomInstance> rooms;
     PlayerData player;
 
-    GameState(void) {
+    std::mt19937 generator;
+
+    GameState(std::mt19937 a_generator) {
+        this->generator = a_generator;
         this->screen = Screen::TITLE;
         this->menu = Menu::NONE;
         this->usedRooms = 0;
         this->curRoom = 0;
         this->rooms = std::vector<RoomInstance>();
-        EntityTemplate temp = EntityTemplate(100, 30);
+        EntityTemplate temp = EntityTemplate(100, 30, {
+            Action {
+                "Example",
+                [](EntityData* a_caster, EntityData* a_target) {
+                    return true;
+                },
+                [](EntityData* a_caster, EntityData* a_target) {
+                    
+                }
+            }
+        });
         this->player = PlayerData(&temp);
     }
 
@@ -203,45 +268,115 @@ public:
     }
 };
 
+struct ConnectionInstance {
+public:
+    size_t destination;
+    ConnectionTest currentTest;
+    ConnectionTest arrivalTest;
+
+    bool CanPass(GameState* a_gameState) {
+        bool currentResult = true;
+        bool arrivalResult = true;
+
+        if (currentTest.condition != nullptr) {
+            currentResult = currentTest.condition(&a_gameState->player);
+        }
+
+        if (arrivalTest.condition != nullptr) {
+            arrivalResult = arrivalTest.condition(&a_gameState->player);
+        }
+
+        if (currentTest.conditionDisplay != nullptr) {
+            currentTest.conditionDisplay(&a_gameState->player, currentResult);
+        }
+        
+        if (arrivalTest.conditionDisplay != nullptr) {
+            arrivalTest.conditionDisplay(&a_gameState->player, arrivalResult);
+        }
+
+        return currentResult && arrivalResult;
+    }
+
+    void Passes(GameState* a_gameState) {
+        if (currentTest.action != nullptr) {
+            currentTest.action(&a_gameState->player);
+        }
+
+        if (arrivalTest.action != nullptr) {
+            arrivalTest.action(&a_gameState->player);
+        }
+    }
+};
+
 int main(int argc, char** argv) {
     #pragma region Random Setup
     std::random_device random = std::random_device();
-    std::mt19937 generator = std::mt19937(random());
+    GameState gameState = GameState(std::mt19937(random()));
     #pragma endregion
-
-    GameState gameState = GameState();
     
     const EntityTemplate ENTITY_TEMPLATES[] = {
-        EntityTemplate(32, 0)
+        EntityTemplate(32, 0, {})
     };
 
     const ItemData ITEM_DATA[] = {
         ItemData("Bean", "A single bean, you may only have 0b11111111 beans.", 0b11111111),
         ItemData("HP Potion", "A HP Potion, restores 20 HP.", 100),
-        ItemData("Mana Potion", "A Mana Potion, restores 20 Mana.", 100)
+        ItemData("Mana Potion", "A Mana Potion, restores 20 Mana.", 100),
+        ItemData("Dungeon Key", "An old key, goes to something important.", 15),
+        ItemData("Sewer Key", "A mucky key, might be useful.", 15)
     };
 
-    const std::array<RoomData, 5> ROOM_DATA = {
-        RoomData("Sanctuary", "", false, 0, 0, 2, 4),
+    const std::array<RoomData, 6> ROOM_DATA = {
+        RoomData("Sanctuary", "A strange room with a strange promise.", false, 0, 0, 2, 4),
         RoomData("Simple", "", true, 0, 1, 1, 3),
         RoomData("Loopback", "", true, 1, 3, 0, 2),
         RoomData("Downfall", "", false, 0, 1, 2, 4),
-        RoomData("Lotus", "", true, 0, 0, 2, 6)
+        RoomData("Lotus", "", true, 0, 0, 2, 6),
+        RoomData("Sewer", "", true, 0, 0, 2, 4, 
+            ConnectionTest {
+                [](PlayerData* a_player) {
+                    return a_player->HasItem(4, 1);
+                },
+                [](PlayerData* a_player, bool a_success) {
+                    if (!a_success) {
+                        std::cout << "You require a key to get through the grate." << std::endl;
+                    }
+                },
+                [](PlayerData* a_player) {
+                    a_player->UseItem(4);
+                    std::cout << "You use one sewer key to open the grate." << std::endl;
+                }
+            }, 
+            ConnectionTest()
+        )
     };
 
-    std::function<size_t(void)> GetRandomRoom = [&generator, &ROOM_DATA]() {
-        return PERCENT_DISTRIBUTION(generator) * ROOM_DATA.size();
+    std::function<size_t(void)> GetRandomRoom = [&gameState, &ROOM_DATA]() {
+        return PERCENT_DISTRIBUTION(gameState.generator) * ROOM_DATA.size();
     };
 
-    std::function<void(RoomInstance* const)> InitializeRoom = [&generator, &GetRandomRoom, &gameState, &ROOM_DATA](RoomInstance* const a_roomInstance) {
-        std::vector<size_t> newConnections = std::vector<size_t>();
+    std::function<void(RoomInstance* const)> InitializeRoom = [&GetRandomRoom, &gameState, &ROOM_DATA](RoomInstance* const a_roomInstance) {
+        std::vector<ConnectionInstance> newConnections = std::vector<ConnectionInstance>();
+        size_t newRoomThing;
         size_t roomIndex = a_roomInstance->roomIndex;
-        size_t newRoomCount = ROOM_DATA[a_roomInstance->roomID].minNew + PERCENT_DISTRIBUTION(generator) * (ROOM_DATA[a_roomInstance->roomID].maxNew - ROOM_DATA[a_roomInstance->roomID].minNew);
-        for (int i = 0; i < std::min<int32_t>(ROOM_DATA[a_roomInstance->roomID].minExisting + PERCENT_DISTRIBUTION(generator) * (ROOM_DATA[a_roomInstance->roomID].maxExisting - ROOM_DATA[a_roomInstance->roomID].minExisting), gameState.usedRooms); ++i) {
-            newConnections.push_back(PERCENT_DISTRIBUTION(generator) * gameState.usedRooms);
+        size_t newRoomCount = ROOM_DATA[a_roomInstance->roomID].minNew + PERCENT_DISTRIBUTION(gameState.generator) * (ROOM_DATA[a_roomInstance->roomID].maxNew - ROOM_DATA[a_roomInstance->roomID].minNew);
+        for (int i = 0; i < std::min<int32_t>(ROOM_DATA[a_roomInstance->roomID].minExisting + PERCENT_DISTRIBUTION(gameState.generator) * (ROOM_DATA[a_roomInstance->roomID].maxExisting - ROOM_DATA[a_roomInstance->roomID].minExisting), gameState.usedRooms); ++i) {
+            newConnections.push_back(
+                ConnectionInstance {
+                    (newRoomThing = size_t(PERCENT_DISTRIBUTION(gameState.generator) * gameState.usedRooms)),
+                    ROOM_DATA[gameState.rooms[newRoomThing].roomID].toConnection,
+                    ROOM_DATA[a_roomInstance->roomID].fromConnection
+                }
+            );
         }
         for (int i = 0; i < newRoomCount; ++i) {
-            newConnections.push_back(gameState.PushBackRoom(GetRandomRoom()));
+            newConnections.push_back(
+                ConnectionInstance {
+                    (newRoomThing = gameState.PushBackRoom(GetRandomRoom())),
+                    ROOM_DATA[gameState.rooms[newRoomThing].roomID].toConnection,
+                    ROOM_DATA[a_roomInstance->roomID].fromConnection
+                }
+            );
         }
         gameState.rooms[roomIndex].connections = newConnections;
     };
@@ -295,14 +430,17 @@ int main(int argc, char** argv) {
                         room = &gameState.rooms[gameState.curRoom];
                         std::cout << "-------------------------------\nRooms:\n";
                         for (size_t connectionIndex = 0; connectionIndex < room->connections.size();) {
-                            std::cout << ++connectionIndex << ") " << ROOM_DATA[gameState.rooms[room->connections[connectionIndex - 1]].roomID].roomName << "[" << room->connections[connectionIndex - 1] << "]\n";
+                            std::cout << ++connectionIndex << ") " << ROOM_DATA[gameState.rooms[room->connections[connectionIndex - 1].destination].roomID].roomName << "[" << room->connections[connectionIndex - 1].destination << "]\n";
                         }
                         std::cout << "\nOption: ";
 
                         SafeInput<uint32_t>(choice);
 
                         if (--choice < room->connections.size()) {
-                            gameState.curRoom = room->connections[choice];
+                            if (room->connections[choice].CanPass(&gameState)) {
+                                room->connections[choice].Passes(&gameState);
+                                gameState.curRoom = room->connections[choice].destination;
+                            }
                             gameState.menu = Menu::NONE;
                         }
                         break;
