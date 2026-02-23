@@ -412,7 +412,7 @@ int main(int argc, char** argv) {
                             << ROOM_DATA[room->roomID].roomName 
                             << " <<<\n\n>" 
                             << ROOM_DATA[room->roomID].roomDescription 
-                            << "<\n\nActions:\n1) Move\n2) Stats\n3) Inventory\n\nOption: ";
+                            << "<\n\nActions:\n1) Move\n2) Stats\n3) Inventory\n4) Quit\n\nOption: ";
                         SafeInput<uint32_t>(choice);
                         switch (choice) {
                             case 1:
@@ -423,6 +423,10 @@ int main(int argc, char** argv) {
                                 break;
                             case 3:
                                 gameState.menu = Menu::INVENTORY;
+                                break;
+                            case 4:
+                                gameState.screen = Screen::TITLE;
+                                gameState.menu = Menu::NONE;
                                 break;
                         }
                         break;
