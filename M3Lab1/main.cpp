@@ -15,16 +15,39 @@
 #include <unordered_map>
 #include <typeinfo>
 #include <algorithm>
+#include <concepts>
+#include <fstream>
+#include <filesystem>
 
-template <typename T>
+#pragma region Input Utilities
+template<std::integral T>
 void SafeInput(T& a_value) {
     while (!(std::cin >> a_value)) {
         std::cout << "INVALID INPUT" << std::endl;
         std::cin.clear();
-        std::cin.ignore(10000, '\n'); 
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); 
+    }
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); 
+}
+
+template<typename T>
+requires(!std::integral<T>)
+void SafeInput(T& a_value) {
+    while (!(std::cin >> a_value)) {
+        std::cout << "INVALID INPUT" << std::endl;
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); 
     }
 }
 
+inline void EatInput() {
+    std::cout << "Press any key to continue..." << std::flush;
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); 
+    std::cout << "\x1B[F\x1B[0K\r" << std::flush;
+}
+#pragma endregion
+
+#pragma region Random Distributions
 std::uniform_real_distribution<float> PERCENT_DISTRIBUTION = std::uniform_real_distribution<float>(0, 1);
 
 std::uniform_int_distribution<uint32_t> DIE_TWO_DISTRIBUTION     = std::uniform_int_distribution<uint32_t>(1, 2);
@@ -48,54 +71,74 @@ std::unordered_map<uint32_t, std::uniform_int_distribution<uint32_t>&> DICE = {
     { 20, DIE_TWENTY_DISTRIBUTION },
     {100, DIE_HUNDRED_DISTRIBUTION},
 };
+#pragma endregion
 
 struct EntityData;
 struct GameState;
+struct ItemStack;
+struct NPCData;
+struct RoomInstance;
+struct ConnectionInstance;
 
+/// @struct Action
+/// @brief Holds the data for an action.
 struct Action {
 public:
-    std::string name;
-    std::function<bool(GameState&, EntityData*, EntityData*)> condition = nullptr;
-    std::function<void(GameState&, EntityData*, EntityData*)> action = nullptr;
+    std::string name;                                                              //< The name of the action.
+    std::function<bool(GameState&, EntityData*, EntityData*)> condition = nullptr; //< The condition of the action, if nullptr, then it has no condition.
+    std::function<void(GameState&, EntityData*, EntityData*)> action = nullptr;    //< The action to execute, don't leave this null.
 };
 
+/// @struct EntityTemplate
+/// @brief A template for a base entity.
 struct EntityTemplate {
 public:
-    int32_t hp;
-    int32_t mana;
-    int32_t armor;
-    std::unordered_map<std::string, int32_t> skills;
-    std::vector<Action> actions;
+    int32_t hp;                                      //< The max HP of the entity.
+    int32_t mana;                                    //< The max mana of the entity.
+    int32_t manaRegen;                               //< The mana regeneration of the entity.
+    int32_t armor;                                   //< The armor of the entity.
+    std::unordered_map<std::string, int32_t> skills; //< The skills of the entity.
+    std::vector<Action> actions;                     //< The actions of the entity.
 
+    /// @brief An entity template with all its values set to the default.
     EntityTemplate(void) {
-        this->hp = 0;
-        this->mana = 0;
-        this->armor = 0;
+        this->hp = this->mana = this->manaRegen = this->armor = 0;
         this->skills = std::unordered_map<std::string, int32_t>();
         this->actions = std::vector<Action>();
     }
 
-    EntityTemplate(int32_t a_hp, int32_t a_mana, int32_t a_armor, const std::unordered_map<std::string, int32_t>& a_skills, const std::vector<Action>& a_actions) {
-        this->hp = a_hp;
-        this->mana = a_mana;
-        this->armor = a_armor;
-        this->skills = a_skills;
-        this->actions = a_actions;
+    /// @brief An entity template with assigned values.
+    ///
+    /// @param a_hp        The word max HP of the entity.
+    /// @param a_mana      The max mana of the entity.
+    /// @param a_manaRegen The mana regeneration of the entity.
+    /// @param a_armor     The armor of the entity.
+    /// @param a_skills    The skills of the entity.
+    /// @param a_actions   The actions of the entity.
+    EntityTemplate(int32_t a_hp, int32_t a_mana, int32_t a_manaRegen, int32_t a_armor, const std::unordered_map<std::string, int32_t>& a_skills, const std::vector<Action>& a_actions) {
+        this->hp        = a_hp;
+        this->mana      = a_mana;
+        this->manaRegen = a_manaRegen;
+        this->armor     = a_armor;
+        this->skills    = a_skills;
+        this->actions   = a_actions;
     }
 };
 
 struct EntityData {
 public:
-    int32_t maxHP;
-    int32_t curHP;
-    uint32_t maxMana;
-    uint32_t curMana;
-    int32_t armor;
-    std::unordered_map<std::string, int32_t> skills;
-    std::vector<Action> actions;
+    int32_t  maxHP;                                  //< The max HP of the entity.
+    int32_t  curHP;                                  //< The current HP of the entity.
+    uint32_t maxMana;                                //< The max mana of the entity.
+    uint32_t curMana;                                //< The current mana of the entity.
+    int32_t  manaRegen;                              //< The mana regeneration of the entity.
+    int32_t  manaSickness;                           //< How long until the entity can regain mana.
+    int32_t  armor;                                  //< The armor of the entity.
+    std::unordered_map<std::string, int32_t> skills; //< The skills of the entity.
+    std::vector<Action> actions;                     //< The actions of the entity.
 
     EntityData(void) {
-        this->maxHP = this->curHP = this->maxMana = this->curMana = this->armor = 0;
+        this->maxHP = this->curHP = this->maxMana = this->curMana = this->manaRegen = this->manaSickness = this->armor = 0;
         this->skills = std::unordered_map<std::string, int32_t>();
         this->actions = std::vector<Action>();
     }
@@ -103,12 +146,18 @@ public:
     EntityData(const EntityTemplate* const a_entityTemplate) {
         this->maxHP = this->curHP = a_entityTemplate->hp;
         this->maxMana = this->curMana = a_entityTemplate->mana;
+        this->manaRegen = a_entityTemplate->manaRegen;
+        this->manaSickness = 0;
         this->armor = a_entityTemplate->armor;
         this->skills = a_entityTemplate->skills;
         this->actions = a_entityTemplate->actions;
     }
 
     virtual void Hurt(int32_t) = 0;
+    virtual void Heal(int32_t) = 0;
+
+    virtual void DrainMana(int32_t a_amount) = 0;
+    virtual void RegainMana(int32_t a_amount) = 0;
 
     int32_t GetSkillModifier(const std::string& a_skill) {
         return skills.find(a_skill) != skills.end() ? skills.at(a_skill) : 0;
@@ -123,25 +172,47 @@ public:
         skills.insert_or_assign(a_skill, GetSkillModifier(a_skill) + a_modifier);
         return skills.at(a_skill);
     }
-    
-    //std::unordered_map<std::string, int32_t> skills = {
-    //    {"Martial Combat", 0},
-    //    {"Unarmed Combat", 0},
-    //    {"Brawling"      , 0}
-    //};
+
+    void TurnEnd(void) {
+        if (manaSickness <= 0) {
+            if (manaRegen > 0) {
+                RegainMana(manaRegen);
+            } else if (manaRegen < 0) {
+                DrainMana(-manaRegen);
+            }
+        } else {
+            --manaSickness;
+        }
+    }
 
     virtual ~EntityData() {}
+};
+
+struct ItemUsage {
+public:
+    std::string name = "";
+    std::function<bool(GameState&, const ItemStack&, size_t)> condition = nullptr;
+    std::function<void(GameState&, const ItemStack&, size_t)> usage = nullptr;
 };
 
 struct ItemData {
 public:
     std::string name;
     std::string description;
+    ItemUsage usage;
     uint32_t maxStack;
 
     ItemData(std::string_view a_name, std::string_view a_description, uint32_t a_maxStack) {
         this->name = a_name;
         this->description = a_description;
+        this->usage = ItemUsage();
+        this->maxStack = a_maxStack;
+    }
+
+    ItemData(std::string_view a_name, std::string_view a_description, const ItemUsage& a_usage, uint32_t a_maxStack) {
+        this->name = a_name;
+        this->description = a_description;
+        this->usage = a_usage;
         this->maxStack = a_maxStack;
     }
 };
@@ -227,6 +298,17 @@ public:
         }
     }
 
+    void Heal(int32_t a_amount) {
+        curHP = std::min<int32_t>(curHP + a_amount, maxHP);
+    }
+
+    void DrainMana(int32_t a_amount) {
+        curMana = std::max<int32_t>(curMana - a_amount, 0);
+        if (curMana <= 0) {
+            // Do stuff when the player runs out of mana. Probably going to add a signal to it.
+        }
+    }
+
     void RegainMana(int32_t a_amount) {
         curMana = std::min<int32_t>(curMana + a_amount, maxMana);
     }
@@ -235,13 +317,13 @@ public:
 struct NPCTemplate {
 public:
     std::string name = "";
-    std::function<void(GameState&)> ai = nullptr;
+    std::function<void(GameState&, NPCData&)> ai = nullptr;
 };
 
 struct NPCData : public EntityData {
 public:
     std::string name;
-    const std::function<void(GameState&)>* aiFunction;
+    const std::function<void(GameState&, NPCData&)>* aiFunction;
     bool stunned = false;
 
     NPCData(void) : EntityData() {
@@ -257,20 +339,31 @@ public:
     void Hurt(int32_t a_damage) {
         curHP = std::max<int32_t>(curHP - a_damage, 0);
         if (curHP <= 0) {
-            // Do stuff when the player dies. Can add things like revives or something. Probably going to add a signal to it.
+            // Do stuff when the NPC dies. Adding a signal for this most definitely.
         }
     }
 
     void Heal(int32_t a_amount) {
         curHP = std::min<int32_t>(curHP + a_amount, maxHP);
     }
+
+    void DrainMana(int32_t a_amount) {
+        curMana = std::max<int32_t>(curMana - a_amount, 0);
+        if (curMana <= 0) {
+            // Do stuff when the NPC runs out of mana. Probably going to add a signal to it.
+        }
+    }
+
+    void RegainMana(int32_t a_amount) {
+        curMana = std::min<int32_t>(curMana + a_amount, maxMana);
+    }
 };
 
 struct ConnectionTest {
 public:
-    std::function<bool(PlayerData*)> condition = nullptr;
-    std::function<void(PlayerData*, bool)> conditionDisplay = nullptr;
-    std::function<void(PlayerData*)> action = nullptr;
+    std::function<bool(GameState&, RoomInstance&)>       condition = nullptr;
+    std::function<void(GameState&, RoomInstance&, bool)> conditionDisplay = nullptr;
+    std::function<void(GameState&, RoomInstance&)>       action = nullptr;
 };
 
 struct RoomData {
@@ -313,8 +406,6 @@ public:
     }
 };
 
-struct ConnectionInstance;
-
 struct RoomInstance {
 public:
     bool initialized = false;
@@ -322,12 +413,14 @@ public:
     size_t roomIndex;
     std::vector<ConnectionInstance> connections;
     std::vector<NPCData> inhabitants;
+    std::unordered_map<std::string, int32_t> flags;
 
     RoomInstance(size_t a_roomID, size_t a_roomIndex) {
         this->roomID = a_roomID;
         this->roomIndex = a_roomIndex;
         this->connections = std::vector<ConnectionInstance>();
         this->inhabitants = std::vector<NPCData>();
+        this->flags = std::unordered_map<std::string, int32_t>();
     }
 };
 
@@ -360,14 +453,14 @@ public:
     StartData(void) {
         this->name = "";
         this->description = "";
-        this->playerEntity = EntityTemplate(0, 0, 0, {}, {});
+        this->playerEntity = EntityTemplate();
         this->perks = std::vector<size_t>();
         this->inventory = std::vector<ItemStack>();
         this->turns = 1;
         this->startRoom = -1;
     }
 
-    StartData(std::string_view a_name, std::string_view a_description, EntityTemplate a_playerEntity, const std::vector<size_t>& a_perks, const std::vector<ItemStack>& a_inventory, size_t a_turns, size_t a_startRoom) {
+    StartData(std::string_view a_name, std::string_view a_description, const EntityTemplate& a_playerEntity, const std::vector<size_t>& a_perks, const std::vector<ItemStack>& a_inventory, size_t a_turns, size_t a_startRoom) {
         this->name = a_name;
         this->description = a_description;
         this->playerEntity = a_playerEntity;
@@ -401,7 +494,7 @@ public:
         this->usedRooms = 0;
         this->curRoom = 0;
         this->rooms = std::vector<RoomInstance>();
-        EntityTemplate temp = EntityTemplate(100, 30, 10, {}, {
+        EntityTemplate temp = EntityTemplate(100, 30, 5, 10, {}, {
             Action {
                 "Example",
                 [](GameState& a_gameState, EntityData* a_caster, EntityData* a_target) { return true; },
@@ -545,7 +638,7 @@ std::vector<StartData> GameState::Starts = {
     StartData(
         "Default",
         "A simple start to the game, good for beginners.",
-        EntityTemplate(100, 100, 10, {
+        EntityTemplate(100, 100, 10, 10, {
             {"Martial Combat", 2},
             {"Unarmed Combat", 1},
             {"Brawling", 1},
@@ -561,7 +654,7 @@ std::vector<StartData> GameState::Starts = {
     StartData(
         "Normal",
         "Similar to Default, but with less extra help.",
-        EntityTemplate(100, 100, 10, {
+        EntityTemplate(100, 100, 10, 10, {
             {"Martial Combat", 2},
         }, {
             STANDARD_ACTIONS.at("Punch")
@@ -575,7 +668,7 @@ std::vector<StartData> GameState::Starts = {
     StartData(
         "Trivial",
         "A trivial start to the game, good for people bad at the game.",
-        EntityTemplate(150, 150, 12, {
+        EntityTemplate(150, 150, 10, 12, {
             {"Martial Combat", 3},
             {"Unarmed Combat", 3},
             {"Brawling", 3},
@@ -600,41 +693,336 @@ public:
     ConnectionTest currentTest;
     ConnectionTest arrivalTest;
 
-    bool CanPass(GameState* a_gameState) {
+    bool CanPass(GameState& a_gameState) {
         bool currentResult = true;
         bool arrivalResult = true;
 
         if (currentTest.condition != nullptr) {
-            currentResult = currentTest.condition(&a_gameState->player);
+            currentResult = currentTest.condition(a_gameState, a_gameState.rooms[destination]);
         }
 
         if (arrivalTest.condition != nullptr) {
-            arrivalResult = arrivalTest.condition(&a_gameState->player);
+            arrivalResult = arrivalTest.condition(a_gameState, a_gameState.rooms[destination]);
         }
 
         if (currentTest.conditionDisplay != nullptr) {
-            currentTest.conditionDisplay(&a_gameState->player, currentResult);
+            currentTest.conditionDisplay(a_gameState, a_gameState.rooms[destination], currentResult);
         }
         
         if (arrivalTest.conditionDisplay != nullptr) {
-            arrivalTest.conditionDisplay(&a_gameState->player, arrivalResult);
+            arrivalTest.conditionDisplay(a_gameState, a_gameState.rooms[destination], arrivalResult);
         }
 
         return currentResult && arrivalResult;
     }
 
-    void Passes(GameState* a_gameState) {
+    void Passes(GameState& a_gameState) {
         if (currentTest.action != nullptr) {
-            currentTest.action(&a_gameState->player);
+            currentTest.action(a_gameState, a_gameState.rooms[destination]);
         }
 
         if (arrivalTest.action != nullptr) {
-            arrivalTest.action(&a_gameState->player);
+            arrivalTest.action(a_gameState, a_gameState.rooms[destination]);
         }
     }
 };
 
+namespace DataComponents {
+    /*
+    # EBNF Form
+    
+    <value_char> ::= ([a-z] | [A-Z] | [0-9] | "_" | "-" | "\\n" | "\\\"" | "\\t" | "\\v" | "\\;" | "|" | "." | "," | "'" | ":" | "[" | "]" | "{" | "}" | "/" | "?" | "<" | ">" | "=" | "+" | "!" | "`" | "~" | "@" | "#" | "$" | "%" | "^" | "&" | "*" | "(" | ")")
+    <value_string> ::= ("\"" (<value_char> | ";" | <deadspace>)+ "\"" | (<value_char> | <deadspace>)+)
+    <value_uint> ::= [0-9]+
+    <value_int> ::= "-"? <value_uint>
+
+    <type_int> ::= "INT" ("8" | "16" | "32" | "64")
+    <type_uint> ::= "U" <type_int>
+
+    <delim> ::= ":"
+
+    <identifier> ::= ([a-z] | [A-Z] | [0-9] | "_")+
+    <deadspace> ::= (" " | "\n" | "\t" | "\v")
+    <statement_name> ::= <deadspace>* <identifier> <deadspace>*
+    <statement_data> ::= <deadspace>* <delim> <deadspace>*
+    <statement> ::= (<statement_uint> | <statement_int> | <statement_bool> | <statement_string>)
+
+    <statement_uint> ::= <statement_name> "<" <deadspace>* <type_uint> <deadspace>* ">" <statement_data> <value_uint> <deadspace>* ";"
+    <statement_int> ::= <statement_name> "<" <deadspace>* <type_int> <deadspace>* ">" <statement_data> <value_int> <deadspace>* ";"
+    <statement_bool> ::= <statement_name> "<" <deadspace>* "BOOL" <deadspace>* ">" <statement_data> ((("t" | "T") ("r" | "R") ("u" | "U") ("e" | "E")) | (("f" | "F") ("a" | "A") ("l" | "L") ("s" | "S") ("e" | "E"))) <deadspace>* ";"
+    <statement_string> ::= <statement_name> "<" <deadspace>* "STRING" <deadspace>* ">" <statement_data> (<value_string> <deadspace>*)+ ";"
+    */
+
+    enum class DataType {
+        UINT8,
+        UINT16,
+        UINT32,
+        UINT64,
+        INT8,
+        INT16,
+        INT32,
+        INT64,
+        BOOL,
+        STRING,
+        INVALID,
+    };
+
+    struct DataHolder {
+    public:
+        std::string key;
+        DataType type;
+        void* data;
+        size_t size;
+
+        DataHolder(std::string_view a_key, const DataType& a_dataType, const void* a_data, size_t a_size) {
+            this->key = a_key;
+            this->type = a_dataType;
+            this->data = malloc(a_size);
+            this->size = a_size;
+            
+            memcpy_s(this->data, a_size, a_data, a_size);
+
+            //if (a_dataType == DataType::STRING) {
+            //    std::cout << "Value: " << (char*)data << std::endl;
+            //}
+        }
+
+        void SetData(const void* a_data, size_t a_size) {
+            this->data = realloc(this->data, a_size);
+            this->size = a_size;
+
+            memcpy_s(this->data, a_size, a_data, a_size);
+        }
+
+        ~DataHolder() {
+            //this->key.clear();
+            //this->type = DataType::INVALID;
+            free(this->data);
+            //this->size = 0;
+        }
+    };
+
+    struct DataContainer {
+    public:
+        std::unordered_map<std::string, DataHolder> data;
+
+        DataContainer(void) {
+            this->data = std::unordered_map<std::string, DataHolder>();
+        }
+
+        template<typename T>
+        T* Get(const std::string& a_key) {
+            return (T*)data.at(a_key).data;
+        }
+    };
+
+    enum class ReaderMode {
+        COLLECTING_NAME,
+        COLLECTING_TYPE,
+        COLLECTING_DELM,
+        COLLECTING_DATA,
+    };
+
+    DataContainer ParseDataFile(std::filesystem::path a_path) {
+        std::ifstream reader = std::ifstream(a_path.string());
+        DataContainer container = DataContainer();
+        ReaderMode mode = ReaderMode::COLLECTING_NAME;
+        bool inString = false;
+        bool escaped = false;
+        char character = 0;
+        std::string collectorName = "";
+        std::string collectorType = "";
+        std::string collectorData = "";
+        DataType dataType = DataType::INVALID;
+        while ((character = reader.get()) != -1) {
+            //std::cout << character;
+            switch (mode) {
+                case ReaderMode::COLLECTING_NAME:
+                    switch (character) {
+                        case ' ':
+                        case '\t':
+                        case '\v':
+                        case '\n':
+                            continue;
+                        case '<':
+                            mode = ReaderMode::COLLECTING_TYPE;
+                            break;
+                        default:
+                            collectorName += character;
+                            break;
+                    }
+                    break;
+                case ReaderMode::COLLECTING_TYPE:
+                    switch (character) {
+                        case ' ':
+                        case '\t':
+                        case '\v':
+                        case '\n':
+                            continue;
+                        case '>':
+                            if (collectorType == "UINT8") {
+                                dataType = DataType::UINT8;
+                            } else if (collectorType == "UINT16") {
+                                dataType = DataType::UINT16;
+                            } else if (collectorType == "UINT32") {
+                                dataType = DataType::UINT32;
+                            } else if (collectorType == "UINT64") {
+                                dataType = DataType::UINT64;
+                            } else if (collectorType == "INT8") {
+                                dataType = DataType::INT8;
+                            } else if (collectorType == "INT16") {
+                                dataType = DataType::INT16;
+                            } else if (collectorType == "INT32") {
+                                dataType = DataType::INT32;
+                            } else if (collectorType == "INT64") {
+                                dataType = DataType::INT64;
+                            } else if (collectorType == "BOOL") {
+                                dataType = DataType::BOOL;
+                            } else if (collectorType == "STRING") {
+                                dataType = DataType::STRING;
+                            } else {
+                                dataType = DataType::INVALID;
+                                std::cout << "Error, invalid type \"" << collectorType << "\"." << std::endl;
+                            }
+                            mode = ReaderMode::COLLECTING_DELM;
+                            break;
+                        default:
+                            collectorType += character;
+                            break;
+                    }
+                    break;
+                case ReaderMode::COLLECTING_DELM:
+                    switch (character) {
+                        case ' ':
+                        case '\t':
+                        case '\v':
+                        case '\n':
+                            continue;
+                        case ':':
+                            mode = ReaderMode::COLLECTING_DATA;
+                            break;
+                        default:
+                            std::cout << "Invalid char between delimeter \"" << character << "\"" << std::endl;
+                            break;
+                    }
+                    break;
+                case ReaderMode::COLLECTING_DATA:
+                    switch (character) {
+                        case ' ':
+                        case '\t':
+                        case '\v':
+                        case '\n':
+                            if (inString) {
+                                collectorData += character;
+                            }
+                            escaped = false;
+                            continue;
+                        case '\\':
+                            if (escaped) {
+                                collectorData += character;
+                                escaped = false;
+                            } else {
+                                escaped = true;
+                            }
+                            break;
+                        case ';':
+                            if (escaped || inString) {
+                                collectorData += character;
+                            } else {
+                                mode = ReaderMode::COLLECTING_NAME;
+                                switch (dataType) {
+                                    case DataType::UINT8: {
+                                        uint8_t data = std::stoul(collectorData);
+                                        container.data.emplace(collectorName, DataHolder(collectorName, dataType, (void*)(&data), sizeof(uint8_t)));
+                                        break;
+                                    }
+                                    case DataType::UINT16: {
+                                        uint16_t data = std::stoul(collectorData);
+                                        container.data.emplace(collectorName, DataHolder(collectorName, dataType, (void*)(&data), sizeof(uint16_t)));
+                                        break;
+                                    }
+                                    case DataType::UINT32: {
+                                        uint32_t data = std::stoul(collectorData);
+                                        container.data.emplace(collectorName, DataHolder(collectorName, dataType, (void*)(&data), sizeof(uint32_t)));
+                                        break;
+                                    }
+                                    case DataType::UINT64: {
+                                        uint64_t data = std::stoull(collectorData);
+                                        container.data.emplace(collectorName, DataHolder(collectorName, dataType, (void*)(&data), sizeof(uint64_t)));
+                                        break;
+                                    }
+                                    case DataType::INT8: {
+                                        int8_t data = std::stoi(collectorData);
+                                        container.data.emplace(collectorName, DataHolder(collectorName, dataType, (void*)(&data), sizeof(int8_t)));
+                                        break;
+                                    }
+                                    case DataType::INT16: {
+                                        int16_t data = std::stoi(collectorData);
+                                        container.data.emplace(collectorName, DataHolder(collectorName, dataType, (void*)(&data), sizeof(int16_t)));
+                                        break;
+                                    }
+                                    case DataType::INT32: {
+                                        int32_t data = std::stoi(collectorData);
+                                        container.data.emplace(collectorName, DataHolder(collectorName, dataType, (void*)(&data), sizeof(int32_t)));
+                                        break;
+                                    }
+                                    case DataType::INT64: {
+                                        int64_t data = std::stoll(collectorData);
+                                        container.data.emplace(collectorName, DataHolder(collectorName, dataType, (void*)(&data), sizeof(int64_t)));
+                                        break;
+                                    }
+                                    case DataType::BOOL: {
+                                        std::transform(collectorData.begin(), collectorData.end(), collectorData.begin(), [](unsigned char a_character) { return std::tolower(a_character);});
+                                        container.data.emplace(collectorName, DataHolder(collectorName, dataType, (void*)(collectorData == "true"), sizeof(bool)));
+                                        break;
+                                    }
+                                    case DataType::STRING: {
+                                        container.data.emplace(collectorName, DataHolder(collectorName, dataType, (void*)(collectorData + '\0').c_str(), collectorData.size() + 1));
+                                        break;
+                                    }
+                                }
+                                collectorName = "";
+                                collectorType = "";
+                                collectorData = "";
+                            }
+                            escaped = false;
+                            break;
+                        case '\"':
+                            if (escaped) {
+                                collectorData += '\"';
+                            } else {
+                                inString = !inString;
+                            }
+                            escaped = false;
+                            break;
+                        default:
+                            if (escaped) {
+                                switch (character) {
+                                    case 't':
+                                        collectorData += '\t';
+                                    case 'v':
+                                        collectorData += '\v';
+                                    case 'n':
+                                        collectorData += '\n';
+                                    default:
+                                        collectorData += character;
+                                }
+                            } else {
+                                collectorData += character;
+                            }
+                            escaped = false;
+                            break;
+                    }
+                    break;
+            }
+        }
+
+        return container;
+    }
+}
+
 int main(int argc, char** argv) {
+    //DataComponents::DataContainer container = DataComponents::ParseDataFile(std::filesystem::current_path().append("test.data"));
     #pragma region Random Setup
     std::random_device random = std::random_device();
     GameState gameState = GameState(std::mt19937(random()));
@@ -649,15 +1037,15 @@ int main(int argc, char** argv) {
     //}
 
     const EntityTemplate ENTITY_TEMPLATES[] = {
-        EntityTemplate(32, 0, 6, {}, {}), // Base Goblin
+        EntityTemplate(32, 0, 0, 6, {}, {}), // Base Goblin
     };
 
     const NPCTemplate NPC_TEMPLATES[] = {
         NPCTemplate {
             "Goblin Shaman",
-            [](GameState& a_gameState) {
+            [](GameState& a_gameState, NPCData& a_npc) {
                 size_t healed = 0;
-                if (DIE_TWO_DISTRIBUTION(a_gameState.generator) == 1) {
+                if (a_npc.curMana > 10 && DIE_TWO_DISTRIBUTION(a_gameState.generator) == 1) {
                     for (NPCData& npc : a_gameState.rooms[a_gameState.curRoom].inhabitants) {
                         if (npc.curHP < npc.maxHP) {
                             npc.Heal(DIE_FOUR_DISTRIBUTION(a_gameState.generator) + DIE_FOUR_DISTRIBUTION(a_gameState.generator));
@@ -676,13 +1064,15 @@ int main(int argc, char** argv) {
                         std::cout << "misses." << std::endl;
                     }
                 } else {
+                    a_npc.manaSickness += 1;
+                    a_npc.DrainMana(10);
                     std::cout << "The Goblin Shaman murmurs under their breath; as they do this the opponents are engufled in a pale green mist, which quickly dissipates, and " << healed << " of the opponents seem rejuvinated." << std::endl;
                 }
             }
         },
         NPCTemplate {
             "Goblin Grunt",
-            [](GameState& a_gameState) {
+            [](GameState& a_gameState, NPCData& a_npc) {
                 std::cout << "The Goblin Grunt swings their club at the player and ";
                 if (DIE_TWENTY_DISTRIBUTION(a_gameState.generator) >= a_gameState.player.armor) {
                     int32_t damage = DIE_FOUR_DISTRIBUTION(a_gameState.generator);
@@ -697,8 +1087,30 @@ int main(int argc, char** argv) {
 
     const ItemData ITEM_DATA[] = {
         ItemData("Bean", "A single bean, you may only have 0b11111111 beans.", 0b11111111),
-        ItemData("HP Potion", "A HP Potion, restores 20 HP.", 100),
-        ItemData("Mana Potion", "A Mana Potion, restores 20 Mana.", 100),
+        ItemData("HP Potion", "A HP Potion, restores 20 HP.", 
+            ItemUsage {
+                "Drink",
+                [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
+                    return a_gameState.player.curHP < a_gameState.player.maxHP;
+                },
+                [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
+                    a_gameState.player.Heal(20);
+                    a_gameState.player.UseItem(index);
+                }
+            }, 100
+        ),
+        ItemData("Mana Potion", "A Mana Potion, restores 20 Mana.", 
+            ItemUsage {
+                "Drink",
+                [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
+                    return a_gameState.player.curHP < a_gameState.player.maxHP;
+                },
+                [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
+                    a_gameState.player.RegainMana(20);
+                    a_gameState.player.UseItem(index);
+                }
+            }, 100
+        ),
         ItemData("Dungeon Key", "An old key, goes to something important.", 15),
         ItemData("Sewer Key", "A mucky key, might be useful.", 15),
     };
@@ -728,21 +1140,35 @@ int main(int argc, char** argv) {
             [](GameState& a_gameState, const RoomData& a_roomData) { return (a_roomData.minNew >= 2 || a_roomData.backlink) ? 8 : 0; }, 
             true, 0, 0, 2, 4, 
             ConnectionTest {
-                [](PlayerData* a_player) {
-                    return a_player->HasItem(4, 1);
+                [](GameState& a_gameState, RoomInstance& a_destination) {
+                    return a_destination.flags.contains("OpenDoor") || a_gameState.player.HasItem(4, 1);
                 },
-                [](PlayerData* a_player, bool a_success) {
+                [](GameState& a_gameState, RoomInstance& a_destination, bool a_success) {
                     if (!a_success) {
                         std::cout << "You require a key to get through the grate." << std::endl;
                     }
                 },
-                [](PlayerData* a_player) {
-                    a_player->UseItem(4);
-                    std::cout << "You use one sewer key to open the grate." << std::endl;
+                [](GameState& a_gameState, RoomInstance& a_destination) {
+                    if (!a_destination.flags.contains("OpenDoor")) {
+                        a_gameState.player.UseItem(4);
+                        a_destination.flags.emplace("OpenDoor", 1);
+                        std::cout << "You use one sewer key to open the grate." << std::endl;
+                    }
                 }
             }, 
             ConnectionTest()
         ),
+    };
+
+    const std::unordered_map<std::string, std::function<NPCData(NPCData)>> NPC_MODIFIERS = {
+        {
+            "Shaman", [](NPCData a_npc){
+                a_npc.maxMana += 20;
+                a_npc.curMana += 20;
+                a_npc.manaRegen += 7;
+                return a_npc;
+            }
+        }
     };
 
     const std::array<Encounter, 5> ENCOUNTERS = {
@@ -787,10 +1213,18 @@ int main(int argc, char** argv) {
         },
         Encounter {
             [](GameState& a_gameState) { return a_gameState.curRoom > 0 ? 5 : 0; },
-            [&ENTITY_TEMPLATES, &NPC_TEMPLATES](GameState& a_gameState) {
-                a_gameState.rooms[a_gameState.curRoom].inhabitants.push_back(NPCData(&ENTITY_TEMPLATES[0], &NPC_TEMPLATES[1]));
-                a_gameState.rooms[a_gameState.curRoom].inhabitants.push_back(NPCData(&ENTITY_TEMPLATES[0], &NPC_TEMPLATES[1]));
-                a_gameState.rooms[a_gameState.curRoom].inhabitants.push_back(NPCData(&ENTITY_TEMPLATES[0], &NPC_TEMPLATES[0]));
+            [&ENTITY_TEMPLATES, &NPC_TEMPLATES, &NPC_MODIFIERS](GameState& a_gameState) {
+                a_gameState.rooms[a_gameState.curRoom].inhabitants.push_back(
+                    NPCData(&ENTITY_TEMPLATES[0], &NPC_TEMPLATES[1])
+                );
+                a_gameState.rooms[a_gameState.curRoom].inhabitants.push_back(
+                    NPCData(&ENTITY_TEMPLATES[0], &NPC_TEMPLATES[1])
+                );
+                a_gameState.rooms[a_gameState.curRoom].inhabitants.push_back(
+                    NPC_MODIFIERS.at("Shaman")(
+                        NPCData(&ENTITY_TEMPLATES[0], &NPC_TEMPLATES[0])
+                    )
+                );
             }
         },
         Encounter {
@@ -865,7 +1299,7 @@ int main(int argc, char** argv) {
 
     std::function<void(RoomInstance* const)> InitializeRoom = [&GetRandomRoom, &gameState, &ROOM_DATA](RoomInstance* const a_roomInstance) {
         a_roomInstance->initialized = true;
-        std::vector<ConnectionInstance> newConnections = std::vector<ConnectionInstance>();
+        std::vector<ConnectionInstance> newConnections = a_roomInstance->connections;
         size_t newRoomThing = 0;
         const RoomData& roomType = ROOM_DATA[a_roomInstance->roomID];
         size_t roomIndex = a_roomInstance->roomIndex;
@@ -887,6 +1321,16 @@ int main(int argc, char** argv) {
                     roomType.fromConnection
                 }
             );
+
+            if (ROOM_DATA[gameState.rooms[newRoomThing].roomID].backlink) {
+                gameState.rooms[newRoomThing].connections.push_back(
+                    ConnectionInstance {
+                        roomIndex,
+                        ConnectionTest(),
+                        ConnectionTest()
+                    }
+                );
+            }
         }
         gameState.rooms[roomIndex].connections = newConnections;
     };
@@ -980,8 +1424,8 @@ int main(int argc, char** argv) {
                         SafeInput<uint32_t>(choice);
 
                         if (--choice < room->connections.size()) {
-                            if (room->connections[choice].CanPass(&gameState)) {
-                                room->connections[choice].Passes(&gameState);
+                            if (room->connections[choice].CanPass(gameState)) {
+                                room->connections[choice].Passes(gameState);
                                 gameState.curRoom = room->connections[choice].destination;
                             }
                             gameState.menu = Menu::NONE;
@@ -1019,17 +1463,16 @@ int main(int argc, char** argv) {
                         SafeInput<uint32_t>(choice);
 
                         if (--choice < gameState.player.items.size()) {
-                            switch (gameState.player.items[choice].itemID) {
-                                case 1:
-                                    gameState.player.curHP = std::min(gameState.player.curHP + 20, gameState.player.maxHP);
-                                    gameState.player.UseItem(choice); 
-                                    break;
-                                case 2:
-                                    gameState.player.curMana = std::min(gameState.player.curMana + 20, gameState.player.maxMana);
-                                    gameState.player.UseItem(choice);
-                                    break;
+                            const ItemData& item = ITEM_DATA[gameState.player.items[choice].itemID];
+                            if (item.usage.usage != nullptr) {
+                                if (item.usage.condition == nullptr || item.usage.condition(gameState, gameState.player.items[choice], choice)) {
+                                    item.usage.usage(gameState, gameState.player.items[choice], choice);
+                                } else {
+                                    std::cout << "You don't know why you would use this right now." << std::endl;
+                                }
+                            } else {
+                                std::cout << "This item is not usable." << std::endl;
                             }
-                            gameState.menu = Menu::NONE;
                         } else if (choice == gameState.player.items.size()) {
                             gameState.menu = Menu::NONE;
                         }
@@ -1118,8 +1561,9 @@ int main(int argc, char** argv) {
                                             std::cout << "The " << room->inhabitants[npcIndex].name << " is dead." << std::endl;
                                             continue;
                                         } else if (room->inhabitants[npcIndex].aiFunction != nullptr) {
-                                            (*room->inhabitants[npcIndex].aiFunction)(gameState);
+                                            (*room->inhabitants[npcIndex].aiFunction)(gameState, room->inhabitants[npcIndex]);
                                         }
+                                        EatInput();
                                     }
 
                                     room = &gameState.rooms[gameState.curRoom];
@@ -1133,6 +1577,8 @@ int main(int argc, char** argv) {
                                         if (room->inhabitants[j].curHP <= 0) {
                                             //std::cout << "Killing " << j << std::endl;
                                             remove.push_back(j);
+                                        } else {
+                                            room->inhabitants[j].TurnEnd();
                                         }
                                     }
 
@@ -1146,6 +1592,8 @@ int main(int argc, char** argv) {
                                         // TODO: Switch to a Stats Screen
                                         gameState.screen = Screen::GAME_OVER;
                                         gameState.menu = Menu::NONE;
+                                    } else {
+                                        gameState.player.TurnEnd();
                                     }
                                 }
                             }
@@ -1156,25 +1604,49 @@ int main(int argc, char** argv) {
                 }
                 break;
             case Screen::GAME_OVER:
+                room = &gameState.rooms[gameState.curRoom];
+                const RoomData& roomType = ROOM_DATA[room->roomID];
                 std::cout 
-                    << "-------------------------------\n      >>> MementoMori <<<\n"
-                    << "STATISTICS\n\nRooms: "
+                    << "-------------------------------\n> >> >>> MEMENTO  MORI <<< << <\n"
+                    << ">>> STATISTICS\n>> Exploration\nRooms: "
                     << gameState.usedRooms
-                    << "\nDeath Room: "
+                    << "\n\n>> Death Room\nName: "
+                    << roomType.roomName
+                    << "\nDescription: "
+                    << roomType.roomDescription
+                    << "\nIndex: "
                     << gameState.curRoom
-                    << "\n\nPLAYER\n\nStats:\n\nHP: " 
+                    << "\n\n>>> PLAYER\n>> Stats\nHP: " 
                     << gameState.player.maxHP 
                     << "\nMana: " 
                     << gameState.player.maxMana 
-                    << "\n\nSkills:\n\n";
+                    << "\n\n>> Perks\n";
+
+                for (size_t perkIndex = 0; perkIndex < (size_t)Perks::SIZE; ++perkIndex) {
+                    if (gameState.player.perks.test(perkIndex)) {
+                        switch ((Perks)perkIndex) {
+                            case Perks::INSIGHT:
+                                std::cout << " - Insight\n";
+                                break;
+                            case Perks::ARCANE_EYES:
+                                std::cout << " - Arcane Eyes\n";
+                                break;
+                            case Perks::HARD_HITTER:
+                                std::cout << " - Hard Hitter\n";
+                                break;
+                        }
+                    }
+                }
                 
+                std::cout << "\n>> Skills\n";
+
                 for (std::pair<std::string, int32_t> skillPair : gameState.player.skills) {
                     std::cout << "- " << skillPair.first << ": " << skillPair.second << "\n";
                 }
 
-                std::cout << "\n\nInventory:\n";
+                std::cout << "\n>> Inventory\n";
                 for (size_t inventoryItem = 0; inventoryItem < gameState.player.items.size();) {
-                    std::cout << ++inventoryItem << ") "  << ITEM_DATA[gameState.player.items[inventoryItem - 1].itemID].name << " x" << gameState.player.items[inventoryItem - 1].stackSize << "/" << ITEM_DATA[gameState.player.items[inventoryItem - 1].itemID].maxStack << "\n -" << ITEM_DATA[gameState.player.items[inventoryItem - 1].itemID].description << "\n";
+                    std::cout << ++inventoryItem << ". "  << ITEM_DATA[gameState.player.items[inventoryItem - 1].itemID].name << " x" << gameState.player.items[inventoryItem - 1].stackSize << "/" << ITEM_DATA[gameState.player.items[inventoryItem - 1].itemID].maxStack << "\n -" << ITEM_DATA[gameState.player.items[inventoryItem - 1].itemID].description << "\n";
                 }
 
                 std::cout << "-------------------------------\n1) Title Screen\n2) Quit\n------------------------------\n\nOption: ";
