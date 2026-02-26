@@ -3,6 +3,8 @@
 // Daley Ottersbach
 // 2/11/2026
 
+#define __STDC_WANT_LIB_EXT1__ 1
+#include <cstring>
 #include <iostream>
 #include <string>
 #include <string_view>
@@ -780,7 +782,12 @@ namespace DataComponents {
             this->data = malloc(a_size);
             this->size = a_size;
             
+            
+            #ifdef __STDC_LIB_EXT1__
             memcpy_s(this->data, a_size, a_data, a_size);
+            #else
+            memcpy(this->data, a_data, a_size);
+            #endif
 
             //if (a_dataType == DataType::STRING) {
             //    std::cout << "Value: " << (char*)data << std::endl;
@@ -791,7 +798,11 @@ namespace DataComponents {
             this->data = realloc(this->data, a_size);
             this->size = a_size;
 
+            #ifdef __STDC_LIB_EXT1__
             memcpy_s(this->data, a_size, a_data, a_size);
+            #else
+            memcpy(this->data, a_data, a_size);
+            #endif
         }
 
         ~DataHolder() {
