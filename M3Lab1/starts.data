@@ -19,7 +19,7 @@ END,
 
 1x4,
 6x1,
-ENDx
+-1x
 
 1;0;
 
@@ -43,47 +43,61 @@ END,
 
 1x2,
 7x1,
-ENDx
+-1x
 
 1;0;
 
 CONTINUE
 
-    StartData(
-        "Trivial",
-        "A trivial start to the game, good for people bad at the game.",
-        EntityTemplate(150, 150, 10, 12, {
-            {"Martial Combat", 3},
-            {"Unarmed Combat", 3},
-            {"Brawling"      , 3},
-        }, {
-            STANDARD_ACTIONS.at("Punch"),
-        }), {
-            {"Fighter", ClassInstance("Fighter", 1)},
-        }, {
-            (size_t)Perks::INSIGHT,
-            (size_t)Perks::HORDE_SLAYER,
-        }, {
-            ItemStack(1, 16),
-            ItemStack(2, 16),
-            ItemStack(3, 5),
-            ItemStack(4, 5),
-            ItemStack(5, 1),
-        },
-        1, 0
-    ),
-    StartData(
-        "Wretch",
-        "This is hard mode, no mana, no perks, no items, no classes.",
-        EntityTemplate(100, 0, 0, 10, 
-        {}, {
-            STANDARD_ACTIONS.at("Punch")
-        }), 
-        {}, 
-        {}, 
-        {},
-        1, 0
-    ),
+Trivial
+A trivial start to the game, good for people bad at the game.
+
+150;150;10;12;
+
+Martial Combat:3,
+Unarmed Combat:3,
+Brawling:3,
+END:
+
+Punch,
+END,
+
+Fighter:1,
+END:
+
+INSIGHT,
+HORDE_SLAYER,
+END,
+
+1x16,
+2x16,
+3x5,
+4x5,
+5x1,
+-1x
+
+1;0;
+
+CONTINUE
+
+Wretch
+This is hard mode, no mana, no perks, no items, no classes.
+
+100;0;0;10;
+
+END:
+
+Punch,
+END,
+
+Fighter:1,
+END:
+
+END,
+
+-1x
+
+1;0;
 
 CONTINUE
 
@@ -106,7 +120,7 @@ END,
 
 8x1,
 9x1,
-ENDx
+-1x
 
 1;0;
 

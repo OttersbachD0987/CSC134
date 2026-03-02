@@ -20,6 +20,7 @@
 #include <concepts>
 #include <fstream>
 #include <filesystem>
+#include <optional>
 
 #pragma region Input Utilities
 template<std::integral T>
@@ -393,10 +394,19 @@ public:
         this->xp = 0;
     }
  
-    void UseItem(size_t a_index) {
+    void UseItemAt(size_t a_index) {
         if (--items[a_index].stackSize <= 0) {
             items.erase(items.begin() + a_index);
             equipped.erase(equipped.begin() + a_index);
+        }
+    }
+
+    void UseItemOf(size_t a_itemID) {
+        for (size_t i = 0; i < items.size(); ++i) {
+            if (items[i].itemID == a_itemID) {
+                UseItemAt(i);
+                return;
+            }
         }
     }
 
@@ -466,6 +476,7 @@ public:
     int32_t xp;
     int32_t gold;
     const std::function<void(GameState&, NPCData&)>* aiFunction;
+    std::vector<std::function<void(GameState&, NPCData&)>> onDeath = std::vector<std::function<void(GameState&, NPCData&)>>();
     bool stunned = false;
 
     NPCData(void) : EntityData() {
@@ -552,6 +563,19 @@ public:
     }
 };
 
+struct RoomAction {
+public:
+    std::string name        = "";
+    std::string description = "";
+    std::function<bool(GameState&)> condition = nullptr;
+    std::function<void(GameState&)> usage     = nullptr;
+};
+
+struct RoomActionReference {
+public:
+    const RoomAction& roomAction;
+};
+
 struct RoomInstance {
 public:
     bool initialized = false;
@@ -559,6 +583,7 @@ public:
     size_t roomIndex;
     std::vector<ConnectionInstance> connections;
     std::vector<NPCData> inhabitants;
+    std::vector<RoomActionReference> roomActions;
     std::unordered_map<std::string, int32_t> flags;
 
     RoomInstance(size_t a_roomID, size_t a_roomIndex) {
@@ -566,6 +591,7 @@ public:
         this->roomIndex = a_roomIndex;
         this->connections = std::vector<ConnectionInstance>();
         this->inhabitants = std::vector<NPCData>();
+        this->roomActions = std::vector<RoomActionReference>();
         this->flags = std::unordered_map<std::string, int32_t>();
     }
 
@@ -590,6 +616,7 @@ enum class Screen {
 enum class Menu {
     PAUSE,
     MOVING,
+    ROOM_ACTIONS,
     COMBAT,
     STATS,
     INVENTORY,
@@ -732,7 +759,7 @@ const ItemData ITEM_DATA[] = {
             },
             [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
                 a_gameState.player.Heal(20);
-                a_gameState.player.UseItem(index);
+                a_gameState.player.UseItemAt(index);
             }
         }, 100
     ), // 1
@@ -747,7 +774,7 @@ const ItemData ITEM_DATA[] = {
             },
             [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
                 a_gameState.player.RegainMana(20);
-                a_gameState.player.UseItem(index);
+                a_gameState.player.UseItemAt(index);
             }
         }, 100
     ), // 2
@@ -1162,6 +1189,52 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
             }
         }
     },
+    {
+        "Mark for Death",  Action {
+            "Mark for Death",
+            [](GameState& a_gameState, EntityData* a_caster, EntityData* a_target) { 
+                return a_target != a_caster && a_target->curHP > 0 && a_caster->curMana > 20; 
+            },
+            [](GameState& a_gameState, EntityData* a_caster, EntityData* a_target) {
+                std::cout << "The player gestures a wicked glyph in the air ";
+                int32_t modifier = 
+                    a_caster->GetSkillModifier("Persuasion") + 
+                    a_caster->GetSkillModifier("Knowledge of Death") + 
+                    a_caster->GetSkillModifier("Necromancy");
+                for (size_t i = 0; i < a_gameState.player.items.size(); ++i) { 
+                    if (a_gameState.player.equipped[i] && ITEM_DATA[a_gameState.player.items[i].itemID].tags.contains("Necromantic Focus")) {
+                        modifier += ITEM_DATA[a_gameState.player.items[i].itemID].tags.at("Necromantic Focus");
+                    }
+                }
+                size_t opponents = a_gameState.rooms[a_gameState.curRoom].LivingInhabitants();
+                int32_t roll = DIE_TWENTY_DISTRIBUTION(a_gameState.generator);
+                int32_t result = roll + modifier;
+                if (roll == 20 || result >= a_target->armor) {
+                    NPCData* npc = dynamic_cast<NPCData*>(a_target);
+                    if (npc != nullptr) {
+                        std::cout << "and a dull thud rings out as the color drains away from the " << npc->name << "." << std::endl;
+                        npc->onDeath.push_back(
+                            [](GameState& a_gameState, NPCData& a_npc) {
+                                a_gameState.player.xp += a_npc.curMana;
+                                a_gameState.player.RegainMana(a_npc.xp);
+                                std::cout << "The corpse of the " << a_npc.name << " violently shudders before a strange burst of mana rips away and surges into the player." << std::endl;
+                            }
+                        );
+                    }
+                } else {
+                    std::cout << "and misses with a " << result << " (" << roll << " + " << modifier << ").\n" << std::endl;
+                }
+
+                PlayerData* player = dynamic_cast<PlayerData*>(a_caster);
+                if (player != nullptr) {
+                    ++player->usedTurns;
+                }
+
+                a_caster->DrainMana(20);
+                a_caster->manaSickness += 1;
+            }
+        }
+    },
 };
 
 namespace {
@@ -1219,6 +1292,22 @@ namespace {
                                     a_player.xp -= 5;
                                 }
                                 a_player.maxMana += 15;
+                            }
+                        }
+                    },
+                    ClassLevel {
+                        [](GameState& a_gameState, PlayerData& a_player) {
+                            return a_player.xp >= 35 && a_player.maxMana > 75;
+                        },
+                        {
+                            [](GameState& a_gameState, PlayerData& a_player, bool a_free) {
+                                if (!a_free) {
+                                    a_player.xp -= 35;
+                                }
+                                a_player.maxMana += 10;
+                                if (std::find(a_player.actions.begin(), a_player.actions.end(), STANDARD_ACTIONS.at("Mark for Death")) == a_player.actions.end()) {
+                                    a_player.actions.push_back(STANDARD_ACTIONS.at("Mark for Death"));
+                                }
                             }
                         }
                     },
@@ -1287,8 +1376,8 @@ std::vector<StartData> LoadStartData(std::filesystem::path a_path) {
                 reader.getline(buffer, 256, 'x');
                 break;
         }
-        std::cout << std::string(buffer) << std::endl;
-        std::cout << "S & M : " << step << ", " << mode << std::endl;
+        //std::cout << std::string(buffer) << std::endl;
+        //std::cout << "S & M : " << step << ", " << mode << std::endl;
         switch (step) {
             case 0:
                 name = buffer;
@@ -1406,7 +1495,7 @@ std::vector<StartData> LoadStartData(std::filesystem::path a_path) {
             case 10:
                 if (mode == 4) {
                     intStorage = std::stoi(buffer);
-                    if (stringStorage == "END") {
+                    if (intStorage == -1) {
                         mode = 2;
                         ++step;
                         reader.getline(buffer, 256);
@@ -1442,12 +1531,18 @@ std::vector<StartData> LoadStartData(std::filesystem::path a_path) {
                     turns,
                     startRoom
                 ));
+                skills = std::unordered_map<std::string, int32_t>();
+                actions = std::vector<Action>();
+                classes = std::unordered_map<std::string, ClassInstance>();
+                perks = std::vector<size_t>();
+                inventory = std::vector<ItemStack>();
+                reader.getline(buffer, 256);
                 reader.getline(buffer, 256);
                 break;
             case 13:
                 stringStorage = buffer;
                 if (stringStorage == "FINAL") {
-                    std::cout << "Finished" << std::endl;
+                    //std::cout << "Finished" << std::endl;
                     running = false;
                 } else {
                     step = 0;
@@ -1458,13 +1553,14 @@ std::vector<StartData> LoadStartData(std::filesystem::path a_path) {
         }
     }
 
-    
+    reader.close();
     
     return loadedStarts;
 }
 
 #pragma region Starts
 std::vector<StartData> GameState::Starts = {
+    /*
     StartData(
         "Default",
         "A simple start to the game, good for beginners.",
@@ -1554,6 +1650,7 @@ std::vector<StartData> GameState::Starts = {
         },
         1, 0
     ),
+    */
 };
 #pragma endregion
 
@@ -1995,6 +2092,31 @@ void GenerateShopInstance(GameState& a_gameState, const ShopData& a_shopData, Sh
 }
 #pragma endregion
 
+const std::unordered_map<std::string, RoomAction> ROOM_ACTIONS = {
+    {
+        "Treasure Trove", RoomAction {
+            "Treasure Trove",
+            "A pile of riches.",
+            [](GameState& a_gameState) {
+                return 
+                    a_gameState.rooms[a_gameState.curRoom].flags.contains("TreasureTrove_Count") && 
+                    a_gameState.rooms[a_gameState.curRoom].flags.contains("TreasureTrove_Dice") &&
+                    !a_gameState.rooms[a_gameState.curRoom].flags.contains("TreasureTrove_Looted");
+            },
+            [](GameState& a_gameState) {
+                a_gameState.rooms[a_gameState.curRoom].flags.emplace("TreasureTrove_Looted", 0);
+                int32_t goldAmount = 0;
+                std::uniform_int_distribution<uint32_t>& dieDistribution = DICE.at(a_gameState.rooms[a_gameState.curRoom].flags.at("TreasureTrove_Dice"));
+                for (size_t i = 0; i < a_gameState.rooms[a_gameState.curRoom].flags.at("TreasureTrove_Count"); ++i) {
+                    goldAmount += dieDistribution(a_gameState.generator);
+                }
+                a_gameState.player.gold += goldAmount;
+                std::cout << "You find " << goldAmount << " (" << a_gameState.rooms[a_gameState.curRoom].flags.at("TreasureTrove_Count") << "d" << a_gameState.rooms[a_gameState.curRoom].flags.at("TreasureTrove_Dice") << ") gold." << std::endl;
+            }
+        }
+    }
+};
+
 int main(int argc, char** argv) {
     //DataComponents::DataContainer container = DataComponents::ParseDataFile(std::filesystem::current_path().append("test.data"));
     for (const StartData& start : LoadStartData(std::filesystem::current_path().append("starts.data"))) {
@@ -2103,7 +2225,7 @@ int main(int argc, char** argv) {
                 },
                 [](GameState& a_gameState, RoomInstance& a_destination) {
                     if (!a_destination.flags.contains("OpenDoor")) {
-                        a_gameState.player.UseItem(4);
+                        a_gameState.player.UseItemOf(4);
                         a_destination.flags.emplace("OpenDoor", 1);
                         std::cout << "You use one sewer key to open the grate." << std::endl;
                     }
@@ -2197,7 +2319,13 @@ int main(int argc, char** argv) {
                         NPCData(&ENTITY_TEMPLATES[0], &NPC_TEMPLATES[0])
                     )
                 );
-                a_gameState.player.gold += 10 + DIE_TWELVE_DISTRIBUTION(a_gameState.generator) + DIE_TWELVE_DISTRIBUTION(a_gameState.generator);
+                a_gameState.rooms[a_gameState.curRoom].roomActions.push_back(
+                    RoomActionReference {
+                        ROOM_ACTIONS.at("Treasure Trove")
+                    }
+                );
+                a_gameState.rooms[a_gameState.curRoom].flags.emplace("TreasureTrove_Count", 3);
+                a_gameState.rooms[a_gameState.curRoom].flags.emplace("TreasureTrove_Dice", 12);
             }
         },
         Encounter {
@@ -2407,19 +2535,22 @@ int main(int argc, char** argv) {
                             break;
                         }
                         
-                        std::cout << "\nActions:\n1) Move\n2) Stats\n3) Inventory\n4) Quit\n\nOption: ";
+                        std::cout << "\nActions:\n1) Move\n2) Actions\n3) Stats\n4) Inventory\n5) Quit\n\nOption: ";
                         SafeInput<uint32_t>(choice);
                         switch (choice) {
                             case 1:
                                 gameState.menu = Menu::MOVING;
                                 break;
                             case 2:
-                                gameState.menu = Menu::STATS;
+                                gameState.menu = Menu::ROOM_ACTIONS;
                                 break;
                             case 3:
-                                gameState.menu = Menu::INVENTORY;
+                                gameState.menu = Menu::STATS;
                                 break;
                             case 4:
+                                gameState.menu = Menu::INVENTORY;
+                                break;
+                            case 5:
                                 gameState.screen = Screen::TITLE;
                                 gameState.menu = Menu::NONE;
                                 break;
@@ -2440,6 +2571,25 @@ int main(int argc, char** argv) {
                                 room->connections[choice].Passes(gameState);
                                 gameState.curRoom = room->connections[choice].destination;
                             }
+                            gameState.menu = Menu::NONE;
+                        }
+                        break;
+                    case Menu::ROOM_ACTIONS:
+                        room = &gameState.rooms[gameState.curRoom];
+                        std::cout << "-------------------------------\nActions:\n";
+                        for (size_t i = 0; i < room->roomActions.size(); ++i) {
+                            std::cout << (i + 1) << ") " << room->roomActions[i].roomAction.name << "\n- " << room->roomActions[i].roomAction.description << "\n";
+                        }
+                        std::cout << (room->roomActions.size() + 1) << ") Back\n\nOption: ";
+
+                        SafeInput<uint32_t>(choice);
+
+                        if (--choice < room->roomActions.size()) {
+                            if (room->roomActions[choice].roomAction.condition(gameState)) {
+                                room->roomActions[choice].roomAction.usage(gameState);
+                            }
+                            gameState.menu = Menu::NONE;
+                        } else if (choice == room->roomActions.size()) {
                             gameState.menu = Menu::NONE;
                         }
                         break;
@@ -2632,10 +2782,8 @@ int main(int argc, char** argv) {
                                         if (room->inhabitants[npcIndex].stunned) {
                                             room->inhabitants[npcIndex].stunned = false;
                                             std::cout << "The " << room->inhabitants[npcIndex].name << " is stunned." << std::endl;
-                                            continue;
                                         } else if (room->inhabitants[npcIndex].curHP <= 0) {
                                             std::cout << "The " << room->inhabitants[npcIndex].name << " is dead." << std::endl;
-                                            continue;
                                         } else if (room->inhabitants[npcIndex].aiFunction != nullptr) {
                                             (*room->inhabitants[npcIndex].aiFunction)(gameState, room->inhabitants[npcIndex]);
                                         }
@@ -2650,6 +2798,9 @@ int main(int argc, char** argv) {
                                         if (room->inhabitants[j].curHP <= 0) {
                                             gameState.player.xp += room->inhabitants[j].xp;
                                             gameState.player.gold += room->inhabitants[j].gold;
+                                            for (size_t k = 0; k < room->inhabitants[j].onDeath.size(); ++k) {
+                                                gameState.rooms[gameState.curRoom].inhabitants[j].onDeath[k](gameState, gameState.rooms[gameState.curRoom].inhabitants[j]);
+                                            }
                                             remove.push_back(j);
                                         } else {
                                             room->inhabitants[j].TurnEnd();
