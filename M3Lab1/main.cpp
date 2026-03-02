@@ -178,6 +178,13 @@ public:
     }
 };
 
+struct TimedEffect {
+public:
+    int32_t timeLeft;
+    std::function<void(GameState&, EntityData&)> onTick = nullptr;
+    std::function<void(GameState&, EntityData&)> onRemove = nullptr;
+};
+
 struct EntityData {
 public:
     int32_t  maxHP;                                  //< The max HP of the entity.
@@ -189,6 +196,7 @@ public:
     int32_t  armor;                                  //< The armor of the entity.
     std::unordered_map<std::string, int32_t> skills; //< The skills of the entity.
     std::vector<Action> actions;                     //< The actions of the entity.
+    std::unordered_map<std::string, TimedEffect> timedEffects = std::unordered_map<std::string, TimedEffect>();
 
     EntityData(void) {
         this->maxHP = this->curHP = this->maxMana = this->curMana = this->manaRegen = this->manaSickness = this->armor = 0;
@@ -226,7 +234,7 @@ public:
         return skills.at(a_skill);
     }
 
-    void TurnEnd(void) {
+    void TurnEnd(GameState& a_gameState) {
         if (manaSickness <= 0) {
             if (manaRegen > 0) {
                 RegainMana(manaRegen);
@@ -235,6 +243,25 @@ public:
             }
         } else {
             --manaSickness;
+        }
+
+        std::vector<std::string> toRemove = std::vector<std::string>();
+
+        for (std::pair<std::string, TimedEffect> effectPair : timedEffects) {
+            if (--effectPair.second.timeLeft <= 0) {
+                toRemove.push_back(effectPair.first);
+                if (effectPair.second.onRemove != nullptr) {
+                    effectPair.second.onRemove(a_gameState, *this);
+                }
+            } else {
+                if (effectPair.second.onTick != nullptr) {
+                    effectPair.second.onTick(a_gameState, *this);
+                }
+            }
+        }
+
+        for (std::string key : toRemove) {
+            timedEffects.erase(key);
         }
     }
 
@@ -321,6 +348,7 @@ enum class Perks {
 
 struct ClassLevel {
 public:
+    std::function<void(GameState&, PlayerData&)> displayRequirements;
     std::function<bool(GameState&, PlayerData&)> applicable;
     std::vector<std::function<void(GameState&, PlayerData&, bool)>> levelUpEffects;
 };
@@ -393,7 +421,8 @@ public:
         this->gold = 0;
         this->xp = 0;
     }
- 
+
+    #pragma region Inventory
     void UseItemAt(size_t a_index) {
         if (--items[a_index].stackSize <= 0) {
             items.erase(items.begin() + a_index);
@@ -437,6 +466,11 @@ public:
             }
         }
         return std::optional<size_t>();
+    }
+    #pragma endregion
+
+    int32_t LevelInClass(const std::string& a_class) {
+        return classes.contains(a_class) ? classes.at(a_class).level + 1 : 0;
     }
 
     void Hurt(int32_t a_damage) {
@@ -567,13 +601,14 @@ struct RoomAction {
 public:
     std::string name        = "";
     std::string description = "";
-    std::function<bool(GameState&)> condition = nullptr;
-    std::function<void(GameState&)> usage     = nullptr;
+    std::function<void(GameState&)> roomDescription = nullptr;
+    std::function<bool(GameState&)> condition       = nullptr;
+    std::function<void(GameState&)> usage           = nullptr;
 };
 
 struct RoomActionReference {
 public:
-    const RoomAction& roomAction;
+    RoomAction roomAction;
 };
 
 struct RoomInstance {
@@ -585,6 +620,7 @@ public:
     std::vector<NPCData> inhabitants;
     std::vector<RoomActionReference> roomActions;
     std::unordered_map<std::string, int32_t> flags;
+    std::unordered_map<std::string, void*> data;
 
     RoomInstance(size_t a_roomID, size_t a_roomIndex) {
         this->roomID = a_roomID;
@@ -593,6 +629,7 @@ public:
         this->inhabitants = std::vector<NPCData>();
         this->roomActions = std::vector<RoomActionReference>();
         this->flags = std::unordered_map<std::string, int32_t>();
+        this->data = std::unordered_map<std::string, void*>();
     }
 
     size_t LivingInhabitants(void) {
@@ -606,6 +643,7 @@ public:
     }
 };
 
+#pragma region Screen and Menu
 enum class Screen {
     TITLE,
     GAME_SELECT,
@@ -623,9 +661,11 @@ enum class Menu {
     LEVEL_UP,
     NONE
 };
+#pragma endregion
 
 namespace {
     extern const std::unordered_map<std::string, Class> CLASSES;
+    extern const std::unordered_map<std::string, TimedEffect> STANDARD_TIMED_EFFECTS;
 }
 
 struct StartData {
@@ -638,6 +678,8 @@ public:
     std::vector<ItemStack> inventory;
     size_t turns;
     size_t startRoom;
+    size_t xp;
+    size_t gold;
 
     /// @brief Brief
     StartData(void) {
@@ -649,6 +691,8 @@ public:
         this->inventory = std::vector<ItemStack>();
         this->turns = 1;
         this->startRoom = -1;
+        this->xp = 0;
+        this->gold = 0;
     }
 
     /// @brief Brief
@@ -660,7 +704,9 @@ public:
     /// @param a_inventory f
     /// @param a_turns g
     /// @param a_startRoom h
-    StartData(std::string_view a_name, std::string_view a_description, const EntityTemplate& a_playerEntity, const std::unordered_map<std::string, ClassInstance>& a_classes, const std::vector<size_t>& a_perks, const std::vector<ItemStack>& a_inventory, size_t a_turns, size_t a_startRoom) {
+    /// @param a_xp
+    /// @param a_gold
+    StartData(std::string_view a_name, std::string_view a_description, const EntityTemplate& a_playerEntity, const std::unordered_map<std::string, ClassInstance>& a_classes, const std::vector<size_t>& a_perks, const std::vector<ItemStack>& a_inventory, size_t a_turns, size_t a_startRoom, size_t a_xp, size_t a_gold) {
         this->name = a_name;
         this->description = a_description;
         this->playerEntity = a_playerEntity;
@@ -669,12 +715,16 @@ public:
         this->inventory = a_inventory;
         this->turns = a_turns;
         this->startRoom = a_startRoom;
+        this->xp = a_xp;
+        this->gold = a_gold;
     }
 };
 
 struct GameState {
 public:
     static std::vector<StartData> Starts;
+
+    bool debugMode = false;
 
     bool running = true;
     Screen screen;
@@ -725,7 +775,8 @@ public:
             }
             this->player.classes.insert(std::pair<std::string, ClassInstance>(classPair.first, classPair.second));
         }
-        this->player.xp = 0;
+        this->player.xp = GameState::Starts[a_start].xp;
+        this->player.gold = GameState::Starts[a_start].gold;
         this->player.items = GameState::Starts[a_start].inventory;
         this->player.equipped = std::vector<bool>(player.items.size());
         this->PushBackRoom(GameState::Starts[a_start].startRoom);
@@ -743,7 +794,7 @@ public:
     std::function<void(GameState&)> event = nullptr;
 };
 
-#pragma region ITEMS
+#pragma region Items
 const ItemData ITEM_DATA[] = {
     ItemData("Bean", "A single bean, you may only have 0b11111111 beans.", 
         0b11111111
@@ -1107,9 +1158,11 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
                     std::cout << "and misses with a " << result << " (" << roll << " + " << modifier << ").\n" << std::endl;
                 }
 
-                PlayerData* player = dynamic_cast<PlayerData*>(a_caster);
-                if (player != nullptr) {
-                    ++player->usedTurns;
+                if (a_gameState.rooms[a_gameState.curRoom].LivingInhabitants() <= 1 || a_target->curHP > 0 || DIE_THREE_DISTRIBUTION(a_gameState.generator) != 1) {
+                    PlayerData* player = dynamic_cast<PlayerData*>(a_caster);
+                    if (player != nullptr) {
+                        ++player->usedTurns;
+                    }
                 }
             }
         }
@@ -1235,6 +1288,37 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
             }
         }
     },
+    {
+        "Bone Shield",  Action {
+            "Bone Shield",
+            [](GameState& a_gameState, EntityData* a_caster, EntityData* a_target) { 
+                return a_target->curHP > 0 && a_caster->curMana > 10 && !a_target->timedEffects.contains("Bone Shield."); 
+            },
+            [](GameState& a_gameState, EntityData* a_caster, EntityData* a_target) {
+                std::cout << "The player raises their hands, and forward burst bones, creating a protective carapace around ";
+                
+                a_target->armor += 2;
+                a_target->timedEffects.emplace("Bone Shield", STANDARD_TIMED_EFFECTS.at("Bone Shield"));
+
+                if (a_caster == a_target) {
+                    std::cout << "themselves." << std::endl;
+                } else {
+                    NPCData* npc = dynamic_cast<NPCData*>(a_target);
+                    if (npc != nullptr) {
+                        std::cout << "the " << npc->name << "." << std::endl;
+                    }
+                }
+
+                PlayerData* player = dynamic_cast<PlayerData*>(a_caster);
+                if (player != nullptr) {
+                    ++player->usedTurns;
+                }
+
+                a_caster->DrainMana(10);
+                a_caster->manaSickness += 1;
+            }
+        }
+    },
 };
 
 namespace {
@@ -1245,6 +1329,9 @@ namespace {
                 "Skill with the blade.",
                 {
                     ClassLevel {
+                        [](GameState& a_gameState, PlayerData& a_player) {
+                            std::cout << "Have at least 10 xp.";
+                        },
                         [](GameState& a_gameState, PlayerData& a_player) {
                             return a_player.xp >= 10;
                         },
@@ -1258,7 +1345,40 @@ namespace {
                                 }
                             }
                         }
-                    }
+                    },
+                    ClassLevel {
+                        [](GameState& a_gameState, PlayerData& a_player) {
+                            std::cout << "Have at least 7 xp.";
+                        },
+                        [](GameState& a_gameState, PlayerData& a_player) {
+                            return a_player.xp >= 7;
+                        },
+                        {
+                            [](GameState& a_gameState, PlayerData& a_player, bool a_free) {
+                                if (!a_free) {
+                                    a_player.xp -= 7;
+                                }
+                                a_player.turns += 1;
+                            }
+                        }
+                    },
+                    ClassLevel {
+                        [](GameState& a_gameState, PlayerData& a_player) {
+                            std::cout << "Have at least 18 xp.";
+                        },
+                        [](GameState& a_gameState, PlayerData& a_player) {
+                            return a_player.xp >= 18;
+                        },
+                        {
+                            [](GameState& a_gameState, PlayerData& a_player, bool a_free) {
+                                if (!a_free) {
+                                    a_player.xp -= 18;
+                                }
+                                a_player.curHP += 15;
+                                a_player.maxHP += 15;
+                            }
+                        }
+                    },
                 }
             }
         },
@@ -1269,7 +1389,10 @@ namespace {
                 {
                     ClassLevel {
                         [](GameState& a_gameState, PlayerData& a_player) {
-                            return a_player.xp >= 10 && a_player.maxMana > 75;
+                            std::cout << "Have at least 10 xp and 75 maximum mana.";
+                        },
+                        [](GameState& a_gameState, PlayerData& a_player) {
+                            return a_player.xp >= 10 && a_player.maxMana >= 75;
                         },
                         {
                             [](GameState& a_gameState, PlayerData& a_player, bool a_free) {
@@ -1284,7 +1407,10 @@ namespace {
                     },
                     ClassLevel {
                         [](GameState& a_gameState, PlayerData& a_player) {
-                            return a_player.xp >= 5 && a_player.maxMana > 75;
+                            std::cout << "Have at least 5 xp and 75 maximum mana.";
+                        },
+                        [](GameState& a_gameState, PlayerData& a_player) {
+                            return a_player.xp >= 5 && a_player.maxMana >= 75;
                         },
                         {
                             [](GameState& a_gameState, PlayerData& a_player, bool a_free) {
@@ -1297,7 +1423,10 @@ namespace {
                     },
                     ClassLevel {
                         [](GameState& a_gameState, PlayerData& a_player) {
-                            return a_player.xp >= 35 && a_player.maxMana > 75;
+                            std::cout << "Have at least 35 xp and 75 maximum mana.";
+                        },
+                        [](GameState& a_gameState, PlayerData& a_player) {
+                            return a_player.xp >= 35 && a_player.maxMana >= 75;
                         },
                         {
                             [](GameState& a_gameState, PlayerData& a_player, bool a_free) {
@@ -1312,6 +1441,53 @@ namespace {
                         }
                     },
                 }
+            }
+        },
+        {
+            "Death Knight", Class {
+                "Death Knight",
+                "Sword and bone meet flesh yet unsundered.",
+                {
+                    ClassLevel {
+                        [](GameState& a_gameState, PlayerData& a_player) {
+                            std::cout << "Have at least 30 xp and " << ((a_player.perks.test((size_t)Perks::ARCANE_EYES) || a_player.LevelInClass("Necromancer") > 0) ? "at least 1 level in Necromancer and at least 1 level in Fighter" : "[UNDECIPHERABLE]") << ".";
+                        },
+                        [](GameState& a_gameState, PlayerData& a_player) {
+                            return a_player.xp >= 30 && a_player.LevelInClass("Necromancer") >= 1 && a_player.LevelInClass("Fighter") >= 1;
+                        },
+                        {
+                            [](GameState& a_gameState, PlayerData& a_player, bool a_free) {
+                                if (!a_free) {
+                                    a_player.xp -= 30;
+                                }
+                                if (std::find(a_player.actions.begin(), a_player.actions.end(), STANDARD_ACTIONS.at("Bone Shield")) == a_player.actions.end()) {
+                                    a_player.actions.push_back(STANDARD_ACTIONS.at("Bone Shield"));
+                                }
+                            }
+                        }
+                    },
+                }
+            }
+        },
+    };
+
+    const std::unordered_map<std::string, TimedEffect> STANDARD_TIMED_EFFECTS = {
+        {
+            "Bone Shield", TimedEffect {
+                1,
+                nullptr,
+                [](GameState& a_gameState, EntityData& a_entityData) {
+                    a_entityData.armor -= 2;
+                }
+            }
+        },
+        {
+            "Decay", TimedEffect {
+                4,
+                [](GameState& a_gameState, EntityData& a_entityData) {
+                    a_entityData.Hurt(DIE_FOUR_DISTRIBUTION(a_gameState.generator));
+                },
+                nullptr
             }
         },
     };
@@ -1352,6 +1528,8 @@ std::vector<StartData> LoadStartData(std::filesystem::path a_path) {
     std::vector<ItemStack> inventory = std::vector<ItemStack>();
     size_t turns;
     size_t startRoom;
+    size_t xp;
+    size_t gold;
 
     uint32_t step = 0;
     uint32_t mode = 0;
@@ -1519,6 +1697,16 @@ std::vector<StartData> LoadStartData(std::filesystem::path a_path) {
                 break;
             case 12:
                 startRoom = std::stoi(buffer);
+                mode = 2;
+                ++step;
+                break;
+            case 13:
+                xp = std::stoi(buffer);
+                mode = 2;
+                ++step;
+                break;
+            case 14:
+                gold = std::stoi(buffer);
                 mode = 0;
                 ++step;
                 loadedStarts.push_back(StartData(
@@ -1529,7 +1717,9 @@ std::vector<StartData> LoadStartData(std::filesystem::path a_path) {
                     perks,
                     inventory,
                     turns,
-                    startRoom
+                    startRoom,
+                    xp,
+                    gold
                 ));
                 skills = std::unordered_map<std::string, int32_t>();
                 actions = std::vector<Action>();
@@ -1539,7 +1729,7 @@ std::vector<StartData> LoadStartData(std::filesystem::path a_path) {
                 reader.getline(buffer, 256);
                 reader.getline(buffer, 256);
                 break;
-            case 13:
+            case 15:
                 stringStorage = buffer;
                 if (stringStorage == "FINAL") {
                     //std::cout << "Finished" << std::endl;
@@ -2098,6 +2288,9 @@ const std::unordered_map<std::string, RoomAction> ROOM_ACTIONS = {
             "Treasure Trove",
             "A pile of riches.",
             [](GameState& a_gameState) {
+                std::cout << (a_gameState.rooms[a_gameState.curRoom].flags.contains("TreasureTrove_Looted") ? "- There isn't even a single coin that remains.\n" : "- There is a glittering pile of riches.\n");
+            },
+            [](GameState& a_gameState) {
                 return 
                     a_gameState.rooms[a_gameState.curRoom].flags.contains("TreasureTrove_Count") && 
                     a_gameState.rooms[a_gameState.curRoom].flags.contains("TreasureTrove_Dice") &&
@@ -2349,40 +2542,58 @@ int main(int argc, char** argv) {
         Encounter {
             [](GameState& a_gameState) { return (a_gameState.curRoom > 5 && a_gameState.player.gold >= 15) ? 3 : 0; },
             [](GameState& a_gameState) {
-                size_t option = 0;
-                ShopInstance shop = ShopInstance();
-                GenerateShopInstance(a_gameState, SHOP_DATA.at("Barterer"), shop);
-                while (option != 3) {
-                    std::cout << "-------------------------------\n\x1b[1m" << shop.shopName << "\x1b[22m\n\nOptions:\n1) Buy\n2) Sell\n3) Exit\n\nOption: ";
-                    SafeInput<size_t>(option);
-                    switch (option) {
-                        case 1:
-                            std::cout << "-------------------------------\nGold: " << a_gameState.player.gold << "\n\nCatalog:\n";
-                            for (size_t i = 0; i < shop.catalog.size(); ++i) {
-                                const ItemData& itemType = ITEM_DATA[shop.catalog[i].stack.itemID];
-                                std::cout << (i + 1) << ") " << itemType.name << " (" << shop.catalog[i].cost << ") x" << shop.catalog[i].stack.stackSize << "\n";
-                            }
-                            std::cout << (shop.catalog.size() + 1) << ") Back\n\nOption: ";
-                            SafeInput<size_t>(option);
+                std::cout << "There is a barterer in this room." << std::endl;
+                a_gameState.rooms[a_gameState.curRoom].data.emplace("Shop", new ShopInstance());
+                GenerateShopInstance(a_gameState, SHOP_DATA.at("Barterer"), *(ShopInstance*)a_gameState.rooms[a_gameState.curRoom].data.at("Shop"));
+                a_gameState.rooms[a_gameState.curRoom].roomActions.push_back(
+                    RoomActionReference {
+                        RoomAction {
+                            "Shop",
+                            "Shop at the barterer.",
+                            [](GameState& a_gameState) {
+                                std::cout << "- A barterer is humming away in their humble shop.\n";
+                            },
+                            [](GameState& a_gameState) {
+                                return true;
+                            },
+                            [](GameState& a_gameState) {
+                                size_t option = 0;
+                                while (option != 3) {
+                                    ShopInstance* shop = ((ShopInstance*)a_gameState.rooms[a_gameState.curRoom].data.at("Shop"));
+                                    std::cout << "-------------------------------\n\x1b[1m" << shop->shopName << "\x1b[22m\n\nOptions:\n1) Buy\n2) Sell\n3) Exit\n\nOption: ";
+                                    SafeInput<size_t>(option);
+                                    switch (option) {
+                                        case 1:
+                                            std::cout << "-------------------------------\nGold: " << a_gameState.player.gold << "\n\nCatalog:\n";
+                                            for (size_t i = 0; i < shop->catalog.size(); ++i) {
+                                                const ItemData& itemType = ITEM_DATA[shop->catalog[i].stack.itemID];
+                                                std::cout << (i + 1) << ") " << itemType.name << " (" << shop->catalog[i].cost << ") x" << shop->catalog[i].stack.stackSize << "\n";
+                                            }
+                                            std::cout << (shop->catalog.size() + 1) << ") Back\n\nOption: ";
+                                            SafeInput<size_t>(option);
 
-                            if (--option < shop.catalog.size()) {
-                                if (shop.catalog[option].cost <= a_gameState.player.gold) {
-                                    a_gameState.player.gold -= shop.catalog[option].cost;
-                                    a_gameState.player.AddItem(shop.catalog[option].stack.itemID, 1);
-                                    std::cout << "You bought 1 " << ITEM_DATA[shop.catalog[option].stack.itemID].name << " for " << shop.catalog[option].cost << " gold." << std::endl;
-                                    if (--shop.catalog[option].stack.stackSize <= 0) {
-                                        shop.catalog.erase(shop.catalog.begin() + option);
+                                            if (--option < shop->catalog.size()) {
+                                                if (shop->catalog[option].cost <= a_gameState.player.gold) {
+                                                    a_gameState.player.gold -= shop->catalog[option].cost;
+                                                    a_gameState.player.AddItem(shop->catalog[option].stack.itemID, 1);
+                                                    std::cout << "You bought 1 " << ITEM_DATA[shop->catalog[option].stack.itemID].name << " for " << shop->catalog[option].cost << " gold." << std::endl;
+                                                    if (--shop->catalog[option].stack.stackSize <= 0) {
+                                                        shop->catalog.erase(shop->catalog.begin() + option);
+                                                    }
+                                                } else {
+                                                    std::cout << "You do not have enough gold." << std::endl;
+                                                }
+                                            }
+                                            break;
+                                        case 2:
+                                            std::cout << "They do not wish to buy anything from you..." << std::endl;
+                                            break;
                                     }
-                                } else {
-                                    std::cout << "You do not have enough gold." << std::endl;
                                 }
                             }
-                            break;
-                        case 2:
-                            std::cout << "They do not wish to buy anything from you..." << std::endl;
-                            break;
+                        }
                     }
-                }
+                );
             }
         },
     };
@@ -2534,6 +2745,14 @@ int main(int argc, char** argv) {
                             gameState.menu = Menu::COMBAT;
                             break;
                         }
+
+                        if (room->roomActions.size() > 0) {
+                            for (const RoomActionReference& roomAction : room->roomActions) {
+                                if (roomAction.roomAction.roomDescription != nullptr) {
+                                    roomAction.roomAction.roomDescription(gameState);
+                                }
+                            }
+                        }
                         
                         std::cout << "\nActions:\n1) Move\n2) Actions\n3) Stats\n4) Inventory\n5) Quit\n\nOption: ";
                         SafeInput<uint32_t>(choice);
@@ -2553,6 +2772,57 @@ int main(int argc, char** argv) {
                             case 5:
                                 gameState.screen = Screen::TITLE;
                                 gameState.menu = Menu::NONE;
+                                break;
+                            case 333:
+                                if (gameState.debugMode) {
+                                    int32_t number = 0;
+                                    std::cout << "\x1b[1mDebug Menu (EDIT)\x1b[22m\n1) Change Gold\n2) Change XP\n3) Back\n\nOption: ";
+                                    SafeInput<uint32_t>(choice);
+                                    switch (choice) {
+                                        case 1:
+                                            std::cout << "Gold to add: ";
+                                            SafeInput<int32_t>(number);
+                                            gameState.player.gold += number;
+                                            break;
+                                        case 2:
+                                            std::cout << "XP to add: ";
+                                            SafeInput<int32_t>(number);
+                                            gameState.player.xp += number;
+                                            break;
+                                        case 3:
+                                            break;
+                                    }
+                                }
+                                break;
+                            case 444:
+                                if (gameState.debugMode) {
+                                    int32_t number = 0;
+                                    std::cout << "\x1b[1mDebug Menu (INFO)\x1b[22m\n1) View Classes\n2) View Items\n3) Back\n\nOption: ";
+                                    SafeInput<uint32_t>(choice);
+                                    switch (choice) {
+                                        case 1:
+                                            for (std::pair<std::string, Class> classPair : CLASSES) {
+                                                const Class& classData = classPair.second;
+                                                std::cout << classData.name << "\n- " << classData.description << "\nLEVELS\n";
+                                                size_t levelIndex = 1;
+                                                for (const ClassLevel& classLevel : classData.levels) {
+                                                    std::cout << levelIndex++ << ". ";
+                                                    classLevel.displayRequirements(gameState, gameState.player);
+                                                    std::cout << "\n";
+                                                }
+                                                std::cout << std::endl;
+                                            }
+                                            break;
+                                        case 2:
+                                            std::cout << "This is exceedingly difficult to implement.\n" << std::endl;
+                                            break;
+                                        case 3:
+                                            break;
+                                    }
+                                }
+                                break;
+                            case 666:
+                                gameState.debugMode = !gameState.debugMode;
                                 break;
                         }
                         break;
@@ -2603,7 +2873,7 @@ int main(int argc, char** argv) {
                             << gameState.player.xp
                             << "\nGold: "
                             << gameState.player.gold
-                            << "\n\x1b[1mClasses:\x1b[22m\n";
+                            << "\n\n\x1b[1mClasses:\x1b[22m\n";
 
                         for (const std::pair<std::string, ClassInstance>& classPair : gameState.player.classes) {
                             std::cout << classPair.first << "(" << classPair.second.level << "/" << CLASSES.at(classPair.first).levels.size() << "): " << CLASSES.at(classPair.first).description << "\n";
@@ -2639,6 +2909,13 @@ int main(int argc, char** argv) {
                         for (const std::pair<std::string, Class>& classPair : CLASSES) {
                             classics.push_back(classPair.first);
                             std::cout << (accum++) << ") " << classPair.first << "(" << (gameState.player.classes.contains(classPair.first) ? (gameState.player.classes.at(classPair.first).level) : 0) << "/" << classPair.second.levels.size() << "): " << classPair.second.description << "\n";
+                            size_t levelToUse = (gameState.player.classes.contains(classPair.second.name) ? (gameState.player.classes.at(classPair.second.name).level + 1) : 1);
+                            //std::cout << "Level: " << levelToUse << " : " << classPair.second.levels.size() << std::endl;
+                            if (classPair.second.levels.size() >= levelToUse && classPair.second.levels[--levelToUse].displayRequirements != nullptr) {
+                                std::cout << "- \x1b[" << ((classPair.second.levels[levelToUse].applicable == nullptr || classPair.second.levels[levelToUse].applicable(gameState, gameState.player)) ? "32m" : "31m");
+                                classPair.second.levels[levelToUse].displayRequirements(gameState, gameState.player);
+                                std::cout << "\x1b[39m\n";
+                            }
                         }
                             
                         std::cout << accum << ") Back\n\nOption: ";
@@ -2775,6 +3052,10 @@ int main(int argc, char** argv) {
                                     enemiesGo = false;
                                 }
 
+                                if (room->LivingInhabitants() <= 0) {
+                                    enemiesGo = true;
+                                }
+
                                 if (enemiesGo) {
                                     gameState.player.usedTurns = 0;
 
@@ -2803,7 +3084,7 @@ int main(int argc, char** argv) {
                                             }
                                             remove.push_back(j);
                                         } else {
-                                            room->inhabitants[j].TurnEnd();
+                                            room->inhabitants[j].TurnEnd(gameState);
                                         }
                                     }
 
@@ -2817,7 +3098,7 @@ int main(int argc, char** argv) {
                                         gameState.screen = Screen::GAME_OVER;
                                         gameState.menu = Menu::NONE;
                                     } else {
-                                        gameState.player.TurnEnd();
+                                        gameState.player.TurnEnd(gameState);
                                     }
                                 }
                             }
