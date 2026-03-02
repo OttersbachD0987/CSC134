@@ -1,0 +1,29 @@
+Barrage
+This is the default start.
+
+150;150;10;12;
+
+Martial Combat:3,
+Persuasion:3,
+END:
+
+Punch,
+END,
+
+Fighter:1,
+END:
+
+INSIGHT,
+HORDE_SLAYER,
+END,
+
+1x16,
+2x16,
+3x5,
+4x5,
+5x1,
+ENDx
+
+1;0;
+
+FINAL

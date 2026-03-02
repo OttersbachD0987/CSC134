@@ -75,12 +75,58 @@ std::unordered_map<uint32_t, std::uniform_int_distribution<uint32_t>&> DICE = {
 };
 #pragma endregion
 
+/*
+template<typename K, typename V>
+class DumbMap {
+public:
+    std::vector<K> keys;
+    std::vector<V> values;
+
+    DumbMap(void) {
+        this->keys   = std::vector<K>();
+        this->values = std::vector<V>();
+    }
+
+    bool HasKey(const K& a_key) requires Eq<K> {
+        return std::find(keys.begin(), keys.end(), a_key) != keys.end();
+    }
+
+    bool HasValue(const V& a_value) requires Eq<V> {
+        return std::find(values.begin(), values.end(), a_value) != values.end();
+    }
+
+    void Set(const K& a_key, const V& a_value) {
+        for (size_t i = 0; i < keys.size(); ++i) {
+            if (keys[i] == a_key) {
+                values[i] = a_value;
+                return;
+            }
+        }
+        
+        keys.push_back(a_key);
+        values.push_back(a_value);
+    }
+
+    V& Get(const K& a_key, V& a_default) {
+        for (size_t i = 0; i < keys.size(); ++i) {
+            if (keys[i] == a_key) {
+                return values[i];
+            }
+        }
+
+        return a_default;
+    }
+};
+*/
+
 struct EntityData;
 struct GameState;
 struct ItemStack;
 struct NPCData;
+struct PlayerData;
 struct RoomInstance;
 struct ConnectionInstance;
+struct ShopInstance;
 
 /// @struct Action
 /// @brief Holds the data for an action.
@@ -89,6 +135,10 @@ public:
     std::string name;                                                              //< The name of the action.
     std::function<bool(GameState&, EntityData*, EntityData*)> condition = nullptr; //< The condition of the action, if nullptr, then it has no condition.
     std::function<void(GameState&, EntityData*, EntityData*)> action = nullptr;    //< The action to execute, don't leave this null.
+
+    bool operator==(const Action& other) {
+        return this->name == other.name;
+    }
 };
 
 /// @struct EntityTemplate
@@ -201,12 +251,14 @@ struct ItemData {
 public:
     std::string name;
     std::string description;
+    std::unordered_map<std::string, int32_t> tags;
     ItemUsage usage;
     uint32_t maxStack;
 
     ItemData(std::string_view a_name, std::string_view a_description, uint32_t a_maxStack) {
         this->name = a_name;
         this->description = a_description;
+        this->tags = std::unordered_map<std::string, int32_t>();
         this->usage = ItemUsage();
         this->maxStack = a_maxStack;
     }
@@ -214,6 +266,23 @@ public:
     ItemData(std::string_view a_name, std::string_view a_description, const ItemUsage& a_usage, uint32_t a_maxStack) {
         this->name = a_name;
         this->description = a_description;
+        this->tags = std::unordered_map<std::string, int32_t>();
+        this->usage = a_usage;
+        this->maxStack = a_maxStack;
+    }
+
+    ItemData(std::string_view a_name, std::string_view a_description, const std::unordered_map<std::string, int32_t>& a_tags, int32_t a_maxStack) {
+        this->name = a_name;
+        this->description = a_description;
+        this->tags = a_tags;
+        this->usage = ItemUsage();
+        this->maxStack = a_maxStack;
+    }
+
+    ItemData(std::string_view a_name, std::string_view a_description, const std::unordered_map<std::string, int32_t>& a_tags, const ItemUsage& a_usage, uint32_t a_maxStack) {
+        this->name = a_name;
+        this->description = a_description;
+        this->tags = a_tags;
         this->usage = a_usage;
         this->maxStack = a_maxStack;
     }
@@ -235,42 +304,99 @@ public:
     }
 };
 
+enum class BladeType {
+    DAGGER,
+    SHORT_SWORD,
+    LONG_SWORD
+};
+
 enum class Perks {
     INSIGHT,
     ARCANE_EYES,
     HARD_HITTER,
+    HORDE_SLAYER,
     SIZE
+};
+
+struct ClassLevel {
+public:
+    std::function<bool(GameState&, PlayerData&)> applicable;
+    std::vector<std::function<void(GameState&, PlayerData&, bool)>> levelUpEffects;
+};
+
+struct Class {
+public:
+    std::string name;
+    std::string description;
+    std::vector<ClassLevel> levels;
+
+    uint32_t MaxLevel(void) {
+        return levels.size();
+    }
+};
+
+struct ClassInstance {
+public:
+    std::string classType;
+    uint32_t level;
+
+    ClassInstance(void) {
+        this->classType = "";
+        this->level = 0;
+    }
+
+    ClassInstance(std::string_view a_class, uint32_t a_level) {
+        this->classType = a_class;
+        this->level = a_level;
+    }
 };
 
 struct PlayerData : public EntityData {
 public:
+    std::unordered_map<std::string, ClassInstance> classes;
     std::bitset<static_cast<size_t>(Perks::SIZE)> perks;
     std::vector<ItemStack> items;
+    std::vector<bool> equipped;
     int32_t turns = 1;
     int32_t usedTurns = 0;
+    int32_t gold = 0;
+    int32_t xp = 0;
 
     PlayerData(void) : EntityData() {
+        this->classes = std::unordered_map<std::string, ClassInstance>();
         this->perks = std::bitset<static_cast<size_t>(Perks::SIZE)>();
         this->items = std::vector<ItemStack>();
+        this->equipped = std::vector<bool>();
+        this->gold = 0;
+        this->xp = 0;
     }
 
     PlayerData(const EntityTemplate* const a_entityTemplate) : EntityData(a_entityTemplate) {
+        this->classes = std::unordered_map<std::string, ClassInstance>();
         this->perks = std::bitset<static_cast<size_t>(Perks::SIZE)>();
         this->items = std::vector<ItemStack>();
+        this->equipped = std::vector<bool>();
+        this->gold = 0;
+        this->xp = 0;
     }
 
     PlayerData(const EntityTemplate* const a_entityTemplate, const std::vector<size_t>& a_perks, size_t a_turns) : EntityData(a_entityTemplate) {
+        this->classes = std::unordered_map<std::string, ClassInstance>();
         this->perks = std::bitset<static_cast<size_t>(Perks::SIZE)>();
         for (const size_t& perk : a_perks) {
             this->perks.set(perk);
         }
         this->items = std::vector<ItemStack>();
-        this->turns = 1;
+        this->equipped = std::vector<bool>();
+        this->turns = a_turns;
+        this->gold = 0;
+        this->xp = 0;
     }
-
+ 
     void UseItem(size_t a_index) {
         if (--items[a_index].stackSize <= 0) {
             items.erase(items.begin() + a_index);
+            equipped.erase(equipped.begin() + a_index);
         }
     }
 
@@ -282,6 +408,7 @@ public:
             }
         }
         items.push_back(ItemStack(a_itemID, a_itemAmount));
+        equipped.push_back(false);
     }
 
     bool HasItem(size_t a_itemID, uint32_t a_itemAmount) {
@@ -291,6 +418,15 @@ public:
             }
         }
         return false;
+    }
+
+    std::optional<size_t> HasMatchingEquippedItem(GameState& a_gameState, const std::function<bool(GameState&, const ItemStack&)>& a_predicate) {
+        for (size_t i = 0; i < items.size(); ++i) {
+            if (equipped[i] && a_predicate(a_gameState, items[i])) {
+                return std::optional<size_t>(i);
+            }
+        }
+        return std::optional<size_t>();
     }
 
     void Hurt(int32_t a_damage) {
@@ -319,22 +455,30 @@ public:
 struct NPCTemplate {
 public:
     std::string name = "";
+    int32_t xp = 0;
+    int32_t gold = 0;
     std::function<void(GameState&, NPCData&)> ai = nullptr;
 };
 
 struct NPCData : public EntityData {
 public:
     std::string name;
+    int32_t xp;
+    int32_t gold;
     const std::function<void(GameState&, NPCData&)>* aiFunction;
     bool stunned = false;
 
     NPCData(void) : EntityData() {
         this->name = "Unknown";
+        this->xp = 0;
+        this->gold = 0;
         this->aiFunction = nullptr;
     }
 
     NPCData(const EntityTemplate* const a_entityTemplate, const NPCTemplate* const a_npcTemplate) : EntityData(a_entityTemplate) {
         this->name = a_npcTemplate->name;
+        this->xp = a_npcTemplate->xp;
+        this->gold = a_npcTemplate->gold;
         this->aiFunction = &a_npcTemplate->ai;
     }
 
@@ -424,6 +568,16 @@ public:
         this->inhabitants = std::vector<NPCData>();
         this->flags = std::unordered_map<std::string, int32_t>();
     }
+
+    size_t LivingInhabitants(void) {
+        size_t toReturn = 0;
+        for (const NPCData& npc : inhabitants) {
+            if (npc.curHP > 0) {
+                ++toReturn;
+            }
+        }
+        return toReturn;
+    }
 };
 
 enum class Screen {
@@ -439,33 +593,51 @@ enum class Menu {
     COMBAT,
     STATS,
     INVENTORY,
+    LEVEL_UP,
     NONE
 };
+
+namespace {
+    extern const std::unordered_map<std::string, Class> CLASSES;
+}
 
 struct StartData {
 public:
     std::string name;
     std::string description;
     EntityTemplate playerEntity;
+    std::unordered_map<std::string, ClassInstance> classes;
     std::vector<size_t> perks;
     std::vector<ItemStack> inventory;
     size_t turns;
     size_t startRoom;
 
+    /// @brief Brief
     StartData(void) {
         this->name = "";
         this->description = "";
         this->playerEntity = EntityTemplate();
+        this->classes = std::unordered_map<std::string, ClassInstance>();
         this->perks = std::vector<size_t>();
         this->inventory = std::vector<ItemStack>();
         this->turns = 1;
         this->startRoom = -1;
     }
 
-    StartData(std::string_view a_name, std::string_view a_description, const EntityTemplate& a_playerEntity, const std::vector<size_t>& a_perks, const std::vector<ItemStack>& a_inventory, size_t a_turns, size_t a_startRoom) {
+    /// @brief Brief
+    /// @param a_name a
+    /// @param a_description b
+    /// @param a_playerEntity c
+    /// @param a_classes d
+    /// @param a_perks e
+    /// @param a_inventory f
+    /// @param a_turns g
+    /// @param a_startRoom h
+    StartData(std::string_view a_name, std::string_view a_description, const EntityTemplate& a_playerEntity, const std::unordered_map<std::string, ClassInstance>& a_classes, const std::vector<size_t>& a_perks, const std::vector<ItemStack>& a_inventory, size_t a_turns, size_t a_startRoom) {
         this->name = a_name;
         this->description = a_description;
         this->playerEntity = a_playerEntity;
+        this->classes = a_classes;
         this->perks = a_perks;
         this->inventory = a_inventory;
         this->turns = a_turns;
@@ -518,7 +690,17 @@ public:
         this->curRoom = 0;
         this->rooms.clear();
         this->player = PlayerData(&GameState::Starts[a_start].playerEntity, GameState::Starts[a_start].perks, GameState::Starts[a_start].turns);
+        for (const std::pair<std::string, ClassInstance>& classPair : GameState::Starts[a_start].classes) {
+            for (size_t level = 0; level < classPair.second.level; ++level) {
+                for (size_t levelUpEffect = 0; levelUpEffect < CLASSES.at(classPair.second.classType).levels[level].levelUpEffects.size(); ++levelUpEffect) {
+                    CLASSES.at(classPair.second.classType).levels[level].levelUpEffects[levelUpEffect](*this, player, true);
+                }
+            }
+            this->player.classes.insert(std::pair<std::string, ClassInstance>(classPair.first, classPair.second));
+        }
+        this->player.xp = 0;
         this->player.items = GameState::Starts[a_start].inventory;
+        this->player.equipped = std::vector<bool>(player.items.size());
         this->PushBackRoom(GameState::Starts[a_start].startRoom);
     }
 
@@ -534,10 +716,124 @@ public:
     std::function<void(GameState&)> event = nullptr;
 };
 
+#pragma region ITEMS
+const ItemData ITEM_DATA[] = {
+    ItemData("Bean", "A single bean, you may only have 0b11111111 beans.", 
+        0b11111111
+    ), // 0
+    ItemData("HP Potion", "A HP Potion, restores 20 HP.", {
+            {"Consumable", 0},
+            {"Potion"    , 0},
+            {"HPRegain"  , 0},
+        }, ItemUsage {
+            "Drink",
+            [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
+                return a_gameState.player.curHP < a_gameState.player.maxHP;
+            },
+            [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
+                a_gameState.player.Heal(20);
+                a_gameState.player.UseItem(index);
+            }
+        }, 100
+    ), // 1
+    ItemData("Mana Potion", "A Mana Potion, restores 20 Mana.", {
+            {"Consumable", 0},
+            {"Potion"    , 0},
+            {"ManaRegain", 0},
+        }, ItemUsage {
+            "Drink",
+            [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
+                return a_gameState.player.curMana < a_gameState.player.maxMana;
+            },
+            [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
+                a_gameState.player.RegainMana(20);
+                a_gameState.player.UseItem(index);
+            }
+        }, 100
+    ), // 2
+    ItemData("Dungeon Key", "An old key, goes to something important.", {
+            {"Key", 0},
+        }, 15
+    ), // 3
+    ItemData("Sewer Key", "A mucky key, might be useful.", {
+            {"Key", 0},
+        }, 15
+    ), // 4
+    ItemData("Long Sword", "A long sword, good in skilled hands.", {
+            {"Blade", (int32_t)BladeType::LONG_SWORD},
+        }, 1
+    ), // 5
+    ItemData("Short Sword", "A short sword, good in skilled hands.", {
+            {"Blade", (int32_t)BladeType::SHORT_SWORD},
+        }, 1
+    ), // 6
+    ItemData("Dagger", "A small dagger, good in skilled hands.", {
+            {"Blade", (int32_t)BladeType::DAGGER},
+        }, 1
+    ), // 7
+    ItemData("Ritual Dagger", "An ornate dagger, bleeding red metals comprise it's form.", {
+            {"Blade", (int32_t)BladeType::DAGGER},
+        }, 1
+    ), // 8
+    ItemData("Ars Puppetarii Mortui", "A grimoire containing some of the most abhorred gramrye known to mortals. It is woven from skin, but of what, you do not know.", {
+            {"Tome", 0},
+            {"Necromantic Focus", 5},
+        }, ItemUsage {
+            "Study",
+            [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
+                return a_gameState.player.xp > 8;
+            },
+            [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
+                std::cout << "You flip through the pages of this wretched tome..." << std::endl;
+                int32_t xpCost = DIE_EIGHT_DISTRIBUTION(a_gameState.generator);
+                switch (DIE_TWENTY_DISTRIBUTION(a_gameState.generator)) {
+                    case 1:
+                    case 2:
+                    case 3:
+                    case 4:
+                    case 5:
+                    case 6:
+                    case 7:
+                        a_gameState.player.RegainMana(xpCost * DIE_FOUR_DISTRIBUTION(a_gameState.generator));
+                        std::cout << "You feel your mana rejuvinate." << std::endl;
+                        break;
+                    case 8:
+                    case 9:
+                    case 10:
+                    case 11:
+                    case 12:
+                    case 13:
+                    case 14:
+                        a_gameState.player.Heal(xpCost * DIE_FOUR_DISTRIBUTION(a_gameState.generator));
+                        std::cout << "You feel your flesh knit together." << std::endl;
+                        break;
+                    case 15:
+                    case 16:
+                    case 17:
+                        a_gameState.player.AddSkillModifier("Knowledge of Death", xpCost);
+                        std::cout << "You feel your understanding of death increase." << std::endl;
+                        break;
+                    case 18:
+                    case 19:
+                        a_gameState.player.armor += 1;
+                        std::cout << "You feel your skin calcify." << std::endl;
+                        break;
+                    case 20:
+                        a_gameState.player.Hurt(xpCost * DIE_THREE_DISTRIBUTION(a_gameState.generator));
+                        std::cout << "You feel your lungs collapse, before ancient air refills them... Something has changed." << std::endl;
+                        break;
+                }
+                a_gameState.player.xp -= xpCost;
+            }
+        }, 1
+    ), // 9
+};
+
+#pragma endregion
+
 const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
     {
-        "Punch", 
-        Action {
+        "Punch",  Action {
             "Punch",
             [](GameState& a_gameState, EntityData* a_caster, EntityData* a_target) { 
                 return a_target != a_caster && a_target->curHP > 0; 
@@ -548,12 +844,16 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
                     a_caster->GetSkillModifier("Martial Combat") +
                     a_caster->GetSkillModifier("Unarmed Combat") +
                     a_caster->GetSkillModifier("Brawling");
+                size_t opponents = a_gameState.rooms[a_gameState.curRoom].LivingInhabitants();
+                if (opponents > 1) {
+                    modifier += a_caster->GetSkillModifier("Melee Combat");
+                }
                 int32_t roll = DIE_TWENTY_DISTRIBUTION(a_gameState.generator);
                 int32_t result = roll + modifier;
                 if (roll == 20 || result >= a_target->armor) {
                     int32_t damage = 0;
                     int32_t damageModifier = modifier * 0.5;
-                    uint32_t damageTier = 1;
+                    int32_t damageTier = 1;
                     PlayerData* player = dynamic_cast<PlayerData*>(a_caster);
                     if (player != nullptr) {
                         if (player->perks.test((size_t)Perks::HARD_HITTER)) {
@@ -624,16 +924,544 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
                 }
             }
         }
-    }
+    },
+    {
+        "Swift Strike",  Action {
+            "Swift Strike",
+            [](GameState& a_gameState, EntityData* a_caster, EntityData* a_target) { 
+                return a_target != a_caster && a_target->curHP > 0 && a_gameState.player.HasMatchingEquippedItem(a_gameState, [](GameState& a_gameState, const ItemStack& a_itemStack) { return ITEM_DATA[a_itemStack.itemID].tags.contains("Blade"); }).has_value(); 
+            },
+            [](GameState& a_gameState, EntityData* a_caster, EntityData* a_target) {
+                ItemStack& itemStack = a_gameState.player.items[a_gameState.player.HasMatchingEquippedItem(a_gameState, [](GameState& a_gameState, const ItemStack& a_itemStack) { return ITEM_DATA[a_itemStack.itemID].tags.contains("Blade"); }).value()];
+                const ItemData& itemType = ITEM_DATA[itemStack.itemID];
+                BladeType bladeType = (BladeType)itemType.tags.at("Blade");
+                std::cout << "The player swings their " << itemType.name << " ";
+                int32_t modifier = a_caster->GetSkillModifier("Martial Combat");
+                switch (bladeType) {
+                    case BladeType::SHORT_SWORD:
+                    case BladeType::LONG_SWORD:
+                        modifier += a_caster->GetSkillModifier("Swordsmanship");
+                        break;
+                }
+                size_t opponents = a_gameState.rooms[a_gameState.curRoom].LivingInhabitants();
+                if (opponents == 1) {
+                    modifier += a_caster->GetSkillModifier("Dueling");
+                } else {
+                    modifier += a_caster->GetSkillModifier("Melee Combat");
+                }
+                int32_t roll = DIE_TWENTY_DISTRIBUTION(a_gameState.generator);
+                NPCData* npc = dynamic_cast<NPCData*>(a_target);
+                if (npc != nullptr) {
+                    if (npc->stunned) {
+                        roll = std::max<int32_t>(roll, DIE_TWENTY_DISTRIBUTION(a_gameState.generator));
+                    }
+                }
+                int32_t result = roll + modifier;
+                if (roll == 20 || result >= a_target->armor) {
+                    int32_t damage = 0;
+                    int32_t damageModifier = modifier * 0.5;
+                    int32_t damageTier = 1;
+                    PlayerData* player = dynamic_cast<PlayerData*>(a_caster);
+                    if (player != nullptr) {
+                        if (opponents > 3 && player->perks.test((size_t)Perks::HORDE_SLAYER)) {
+                            damageTier += 1;
+                        }
+                    }
+
+                    if (modifier >= 12) {
+                        damageTier += 3;
+                    } else if (modifier >= 9) {
+                        damageTier += 2;
+                    } else if (modifier >= 6) {
+                        damageTier += 1;
+                    } else if (modifier <= -4) {
+                        damageTier -= 1;
+                    } else if (modifier <= -8) {
+                        damageTier -= 2;
+                    } else if (modifier <= -12) {
+                        damageTier -= 3;
+                    }
+
+                    switch (bladeType) {
+                        case BladeType::DAGGER:
+                            switch (damageTier = std::clamp<int32_t>(damageTier, 0, 4)) {
+                                case 0:
+                                    damage = DIE_EIGHT_DISTRIBUTION(a_gameState.generator);
+                                    break;
+                                case 1:
+                                    damage = DIE_FOUR_DISTRIBUTION(a_gameState.generator) + DIE_FOUR_DISTRIBUTION(a_gameState.generator);
+                                    break;
+                                case 2:
+                                    damage = 2 * DIE_FOUR_DISTRIBUTION(a_gameState.generator);
+                                    break;
+                                case 3:
+                                    damage = DIE_THREE_DISTRIBUTION(a_gameState.generator) + DIE_THREE_DISTRIBUTION(a_gameState.generator) + DIE_THREE_DISTRIBUTION(a_gameState.generator);
+                                    break;
+                                case 4:
+                                    damage = 3 * DIE_THREE_DISTRIBUTION(a_gameState.generator);
+                                    break;
+                            }
+                            break;
+                        case BladeType::SHORT_SWORD:
+                        case BladeType::LONG_SWORD:
+                            switch (damageTier = std::clamp<int32_t>(damageTier, 0, 4)) {
+                                case 0:
+                                    damage = DIE_TWELVE_DISTRIBUTION(a_gameState.generator);
+                                    break;
+                                case 1:
+                                    damage = DIE_SIXTEEN_DISTRIBUTION(a_gameState.generator);
+                                    break;
+                                case 2:
+                                    damage = DIE_EIGHT_DISTRIBUTION(a_gameState.generator) + DIE_EIGHT_DISTRIBUTION(a_gameState.generator);
+                                    break;
+                                case 3:
+                                    damage = DIE_FOUR_DISTRIBUTION(a_gameState.generator) + DIE_FOUR_DISTRIBUTION(a_gameState.generator) + DIE_FOUR_DISTRIBUTION(a_gameState.generator) + DIE_FOUR_DISTRIBUTION(a_gameState.generator);
+                                    break;
+                                case 4:
+                                    damage = DIE_SIX_DISTRIBUTION(a_gameState.generator) + DIE_SIX_DISTRIBUTION(a_gameState.generator) + DIE_SIX_DISTRIBUTION(a_gameState.generator) + DIE_SIX_DISTRIBUTION(a_gameState.generator);
+                                    break;
+                            }
+                            break;
+                    }
+
+                    a_target->Hurt(damage + damageModifier);
+
+                    std::cout << "and hits with a " << result << " (" << roll << " + " << modifier << "), dealing " << (damage + damageModifier) << " (" << damage; 
+                    
+                    switch (bladeType) {
+                        case BladeType::DAGGER:
+                            switch (damageTier) {
+                                case 0:
+                                    std::cout << " (1d8)";
+                                    break;
+                                case 1:
+                                    std::cout << " (2d4)";
+                                    break;
+                                case 2:
+                                    std::cout << " (1d4 * 2)";
+                                    break;
+                                case 3:
+                                    std::cout << " (3d3)";
+                                    break;
+                                case 4:
+                                    std::cout << " (1d3 * 3)";
+                                    break;
+                            }
+                            break;
+                        case BladeType::SHORT_SWORD:
+                        case BladeType::LONG_SWORD:
+                            switch (damageTier) {
+                                case 0:
+                                    std::cout << " (1d12)";
+                                    break;
+                                case 1:
+                                    std::cout << " (1d16)";
+                                    break;
+                                case 2:
+                                    std::cout << " (2d8)";
+                                    break;
+                                case 3:
+                                    std::cout << " (4d4)";
+                                    break;
+                                case 4:
+                                    std::cout << " (4d6)";
+                                    break;
+                            }
+                            break;
+                    }
+                    if (damageModifier > 0) {
+                        std::cout << " + " << damageModifier;
+                    } else if (damageModifier < 0) {
+                        
+                        std::cout << " - " << -damageModifier;
+                    }
+                    std::cout << ").\n" << std::endl;
+                } else {
+                    std::cout << "and misses with a " << result << " (" << roll << " + " << modifier << ").\n" << std::endl;
+                }
+
+                PlayerData* player = dynamic_cast<PlayerData*>(a_caster);
+                if (player != nullptr) {
+                    ++player->usedTurns;
+                }
+            }
+        }
+    },
+    {
+        "Call of the Void",  Action {
+            "Call of the Void",
+            [](GameState& a_gameState, EntityData* a_caster, EntityData* a_target) { 
+                return a_target != a_caster && a_target->curHP > 0 && a_caster->curMana > 15; 
+            },
+            [](GameState& a_gameState, EntityData* a_caster, EntityData* a_target) {
+                std::cout << "The player murmers a cursed incantation ";
+                int32_t modifier = 
+                    a_caster->GetSkillModifier("Persuasion") + 
+                    a_caster->GetSkillModifier("Knowledge of Death") + 
+                    a_caster->GetSkillModifier("Necromancy");
+                for (size_t i = 0; i < a_gameState.player.items.size(); ++i) { 
+                    if (a_gameState.player.equipped[i] && ITEM_DATA[a_gameState.player.items[i].itemID].tags.contains("Necromantic Focus")) {
+                        modifier += ITEM_DATA[a_gameState.player.items[i].itemID].tags.at("Necromantic Focus");
+                    }
+                }
+                size_t opponents = a_gameState.rooms[a_gameState.curRoom].LivingInhabitants();
+                int32_t roll = DIE_TWENTY_DISTRIBUTION(a_gameState.generator);
+                int32_t result = roll + modifier;
+                if (roll == 20 || result >= a_target->armor) {
+                    int32_t damage = 0;
+                    int32_t damageModifier = modifier + opponents;
+
+                    damage += DIE_FOUR_DISTRIBUTION(a_gameState.generator) + DIE_FOUR_DISTRIBUTION(a_gameState.generator) + DIE_SIX_DISTRIBUTION(a_gameState.generator);
+
+                    a_target->Hurt(damage + damageModifier);
+
+                    std::cout << "and a torrent of whispers comes forth from the ether with a " << result << " (" << roll << " + " << modifier << "), dealing " << (damage + damageModifier) << " (" << damage << " (2d4 + 1d6)"; 
+                    if (damageModifier > 0) {
+                        std::cout << " + " << damageModifier;
+                    } else if (damageModifier < 0) {
+                        std::cout << " - " << -damageModifier;
+                    }
+                    std::cout << ").\n" << std::endl;
+
+                    for (size_t i = 0; i < a_gameState.rooms[a_gameState.curRoom].inhabitants.size(); ++i) {
+                        if (a_gameState.rooms[a_gameState.curRoom].inhabitants[i].curHP > 0) {
+                            std::cout << "The " << a_gameState.rooms[a_gameState.curRoom].inhabitants[i].name << " twitches, and then ";
+                            switch (DIE_THREE_DISTRIBUTION(a_gameState.generator)) {
+                                case 1:
+                                    a_gameState.rooms[a_gameState.curRoom].inhabitants[i].Hurt(a_gameState.rooms[a_gameState.curRoom].inhabitants[i].curHP * 0.5);
+                                    std::cout << "experiences a violent shudder, their muscles contracting and flailing with seemingly unatural origin." << std::endl;
+                                    break;
+                                case 2:
+                                case 3:
+                                    std::cout << "locks up completely, color itself draining from the area around them." << std::endl;
+                                    a_gameState.rooms[a_gameState.curRoom].inhabitants[i].stunned = true;
+                                    break;
+                            }
+                        } else {
+                            std::cout << "The corpse of the " << a_gameState.rooms[a_gameState.curRoom].inhabitants[i].name << " twitches, and the player feels a surge of ";
+                            if (a_caster->curHP < a_caster->maxHP) {
+                                std::cout << "life rush into them." << std::endl;
+                                a_caster->Heal(a_gameState.rooms[a_gameState.curRoom].inhabitants[i].maxHP * 0.15);
+                            } else if (a_caster->curMana < a_caster->maxMana) {
+                                std::cout << "mana rush into them." << std::endl;
+                                a_caster->RegainMana(a_gameState.rooms[a_gameState.curRoom].inhabitants[i].maxHP * 0.15);
+                            }
+                        }
+                    }
+                } else {
+                    std::cout << "and misses with a " << result << " (" << roll << " + " << modifier << ").\n" << std::endl;
+                }
+
+                PlayerData* player = dynamic_cast<PlayerData*>(a_caster);
+                if (player != nullptr) {
+                    ++player->usedTurns;
+                }
+
+                a_caster->DrainMana(15);
+                a_caster->manaSickness += 1;
+            }
+        }
+    },
 };
+
+namespace {
+    const std::unordered_map<std::string, Class> CLASSES = {
+        {
+            "Fighter", Class {
+                "Fighter",
+                "Skill with the blade.",
+                {
+                    ClassLevel {
+                        [](GameState& a_gameState, PlayerData& a_player) {
+                            return a_player.xp >= 10;
+                        },
+                        {
+                            [](GameState& a_gameState, PlayerData& a_player, bool a_free) {
+                                if (!a_free) {
+                                    a_player.xp -= 10;
+                                }
+                                if (std::find(a_player.actions.begin(), a_player.actions.end(), STANDARD_ACTIONS.at("Swift Strike")) == a_player.actions.end()) {
+                                    a_player.actions.push_back(STANDARD_ACTIONS.at("Swift Strike"));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "Necromancer", Class {
+                "Necromancer",
+                "The dead are at your beck and call.",
+                {
+                    ClassLevel {
+                        [](GameState& a_gameState, PlayerData& a_player) {
+                            return a_player.xp >= 10 && a_player.maxMana > 75;
+                        },
+                        {
+                            [](GameState& a_gameState, PlayerData& a_player, bool a_free) {
+                                if (!a_free) {
+                                    a_player.xp -= 10;
+                                }
+                                if (std::find(a_player.actions.begin(), a_player.actions.end(), STANDARD_ACTIONS.at("Call of the Void")) == a_player.actions.end()) {
+                                    a_player.actions.push_back(STANDARD_ACTIONS.at("Call of the Void"));
+                                }
+                            }
+                        }
+                    },
+                    ClassLevel {
+                        [](GameState& a_gameState, PlayerData& a_player) {
+                            return a_player.xp >= 5 && a_player.maxMana > 75;
+                        },
+                        {
+                            [](GameState& a_gameState, PlayerData& a_player, bool a_free) {
+                                if (!a_free) {
+                                    a_player.xp -= 5;
+                                }
+                                a_player.maxMana += 15;
+                            }
+                        }
+                    },
+                }
+            }
+        },
+    };
+}
 
 #pragma region Stats
 /*
-Martial Combat
-Unarmed Combat
-Brawling
+Martial Combat  - 
+Melee Combat    - Multiple Opponents
+Unarmed Combat  - No weapons
+Brawling        - 
+Swordsmanship   - Skill with Sword
+Dueling         - Fighting one opponent
+Persuasion      - Convincing people and things through words
 */
 #pragma endregion
+
+std::vector<StartData> LoadStartData(std::filesystem::path a_path) {
+    std::vector<StartData> loadedStarts = std::vector<StartData>();
+    std::ifstream reader = std::ifstream(a_path);
+    char buffer[256];
+    std::string stringStorage;
+    int32_t intStorage;
+    std::string name;
+    std::string description;
+
+    // ENTITY TEMPLATE
+    int32_t hp;
+    int32_t mana;
+    int32_t manaRegen;
+    int32_t armor;
+    std::unordered_map<std::string, int32_t> skills = std::unordered_map<std::string, int32_t>();
+    std::vector<Action> actions = std::vector<Action>();
+    // ENTITY TEMPLATE
+
+    std::unordered_map<std::string, ClassInstance> classes = std::unordered_map<std::string, ClassInstance>();
+    std::vector<size_t> perks = std::vector<size_t>();
+    std::vector<ItemStack> inventory = std::vector<ItemStack>();
+    size_t turns;
+    size_t startRoom;
+
+    uint32_t step = 0;
+    uint32_t mode = 0;
+
+    bool running = true;
+
+    while (running) {
+        switch (mode) {
+            case 0:
+                reader.getline(buffer, 256);
+                break;
+            case 1:
+                reader.getline(buffer, 256, ',');
+                break;
+            case 2:
+                reader.getline(buffer, 256, ';');
+                break;
+            case 3:
+                reader.getline(buffer, 256, ':');
+                break;
+            case 4:
+                reader.getline(buffer, 256, 'x');
+                break;
+        }
+        std::cout << std::string(buffer) << std::endl;
+        std::cout << "S & M : " << step << ", " << mode << std::endl;
+        switch (step) {
+            case 0:
+                name = buffer;
+                mode = 0;
+                ++step;
+                break;
+            case 1:
+                description = buffer;
+                mode = 2;
+                ++step;
+                reader.getline(buffer, 256);
+                break;
+            case 2:
+                hp = std::stoi(buffer);
+                mode = 2;
+                ++step;
+                break;
+            case 3:
+                mana = std::stoi(buffer);
+                mode = 2;
+                ++step;
+                break;
+            case 4:
+                manaRegen = std::stoi(buffer);
+                mode = 2;
+                ++step;
+                break;
+            case 5:
+                armor = std::stoi(buffer);
+                mode = 3;
+                ++step;
+                reader.getline(buffer, 256);
+                reader.getline(buffer, 256);
+                break;
+            case 6:
+                if (mode == 3) {
+                    stringStorage = buffer;
+                    if (stringStorage == "END") {
+                        mode = 1;
+                        ++step;
+                        reader.getline(buffer, 256);
+                        reader.getline(buffer, 256);
+                    } else {
+                        mode = 1;
+                    }
+                } else if (mode == 1) {
+                    skills.insert(std::pair(stringStorage, std::stoi(buffer)));
+                    mode = 3;
+                    reader.getline(buffer, 256);
+                } else {
+                    std::cout << "ERROR: mode{" << mode << "} IS NOT VALID" << std::endl;
+                    running = false;
+                }
+                break;
+            case 7:
+                stringStorage = buffer;
+                if (stringStorage == "END") {
+                    mode = 3;
+                    ++step;
+                    reader.getline(buffer, 256);
+                    reader.getline(buffer, 256);
+                } else {
+                    actions.push_back(STANDARD_ACTIONS.at(stringStorage));
+                    mode = 1;
+                    reader.getline(buffer, 256);
+                }
+                break;
+            case 8:
+                if (mode == 3) {
+                    stringStorage = buffer;
+                    if (stringStorage == "END") {
+                        mode = 1;
+                        ++step;
+                        reader.getline(buffer, 256);
+                        reader.getline(buffer, 256);
+                    } else {
+                        mode = 1;
+                    }
+                } else if (mode == 1) {
+                    classes.insert(std::pair(stringStorage, ClassInstance(stringStorage, std::stoi(buffer))));
+                    mode = 3;
+                    reader.getline(buffer, 256);
+                } else {
+                    std::cout << "ERROR: mode{" << mode << "} IS NOT VALID" << std::endl;
+                    running = false;
+                }
+                break;
+            case 9:
+                stringStorage = buffer;
+                if (stringStorage == "END") {
+                    mode = 4;
+                    ++step;
+                    reader.getline(buffer, 256);
+                    reader.getline(buffer, 256);
+                } else {
+                    /*
+                        INSIGHT
+                        ARCANE_EYES
+                        HARD_HITTER
+                        HORDE_SLAYER
+                    */
+                    if (stringStorage == "INSIGHT") {
+                        perks.push_back((size_t)Perks::INSIGHT);
+                    } else if (stringStorage == "ARCANE_EYES") {
+                        perks.push_back((size_t)Perks::ARCANE_EYES);
+                    } else if (stringStorage == "HARD_HITTER") {
+                        perks.push_back((size_t)Perks::HARD_HITTER);
+                    } else if (stringStorage == "HORDE_SLAYER") {
+                        perks.push_back((size_t)Perks::HORDE_SLAYER);
+                    }
+                    mode = 1;
+                    reader.getline(buffer, 256);
+                }
+                break;
+            case 10:
+                if (mode == 4) {
+                    intStorage = std::stoi(buffer);
+                    if (stringStorage == "END") {
+                        mode = 2;
+                        ++step;
+                        reader.getline(buffer, 256);
+                        reader.getline(buffer, 256);
+                    } else {
+                        mode = 1;
+                    }
+                } else if (mode == 1) {
+                    inventory.push_back(ItemStack(intStorage, std::stoi(buffer)));
+                    mode = 4;
+                    reader.getline(buffer, 256);
+                } else {
+                    std::cout << "ERROR: mode{" << mode << "} IS NOT VALID" << std::endl;
+                    running = false;
+                }
+                break;
+            case 11:
+                turns = std::stoi(buffer);
+                mode = 2;
+                ++step;
+                break;
+            case 12:
+                startRoom = std::stoi(buffer);
+                mode = 0;
+                ++step;
+                loadedStarts.push_back(StartData(
+                    name,
+                    description,
+                    EntityTemplate(hp, mana, manaRegen, armor, skills, actions),
+                    classes,
+                    perks,
+                    inventory,
+                    turns,
+                    startRoom
+                ));
+                reader.getline(buffer, 256);
+                break;
+            case 13:
+                stringStorage = buffer;
+                if (stringStorage == "FINAL") {
+                    std::cout << "Finished" << std::endl;
+                    running = false;
+                } else {
+                    step = 0;
+                    mode = 0;
+                    reader.getline(buffer, 256);
+                }
+                break;
+        }
+    }
+
+    
+    
+    return loadedStarts;
+}
 
 #pragma region Starts
 std::vector<StartData> GameState::Starts = {
@@ -643,13 +1471,16 @@ std::vector<StartData> GameState::Starts = {
         EntityTemplate(100, 100, 10, 10, {
             {"Martial Combat", 2},
             {"Unarmed Combat", 1},
-            {"Brawling", 1},
+            {"Brawling"      , 1},
         }, {
             STANDARD_ACTIONS.at("Punch")
         }), {
+            {"Fighter", ClassInstance("Fighter", 1)},
+        }, {
             (size_t)Perks::INSIGHT
         }, {
-            ItemStack(1, 4)
+            ItemStack(1, 4),
+            ItemStack(6, 1),
         },
         1, 0
     ),
@@ -661,9 +1492,12 @@ std::vector<StartData> GameState::Starts = {
         }, {
             STANDARD_ACTIONS.at("Punch")
         }), {
+            {"Fighter", ClassInstance("Fighter", 1)},
+        }, {
 
         }, {
             ItemStack(1, 2),
+            ItemStack(7, 1)
         },
         1, 0
     ),
@@ -673,16 +1507,50 @@ std::vector<StartData> GameState::Starts = {
         EntityTemplate(150, 150, 10, 12, {
             {"Martial Combat", 3},
             {"Unarmed Combat", 3},
-            {"Brawling", 3},
+            {"Brawling"      , 3},
         }, {
             STANDARD_ACTIONS.at("Punch"),
         }), {
-            (size_t)Perks::INSIGHT
+            {"Fighter", ClassInstance("Fighter", 1)},
+        }, {
+            (size_t)Perks::INSIGHT,
+            (size_t)Perks::HORDE_SLAYER,
         }, {
             ItemStack(1, 16),
             ItemStack(2, 16),
             ItemStack(3, 5),
             ItemStack(4, 5),
+            ItemStack(5, 1),
+        },
+        1, 0
+    ),
+    StartData(
+        "Wretch",
+        "This is hard mode, no mana, no perks, no items, no classes.",
+        EntityTemplate(100, 0, 0, 10, 
+        {}, {
+            STANDARD_ACTIONS.at("Punch")
+        }), 
+        {}, 
+        {}, 
+        {},
+        1, 0
+    ),
+    StartData(
+        "Occultist",
+        "They say that the Ars Puppetarii Mortui hold secrets not meant for mortals, you think they're just stupid.",
+        EntityTemplate(65, 175, 15, 10, {
+            {"Knowledge of Death", 2},
+            {"Necromancy"        , 1}
+        }, {
+            STANDARD_ACTIONS.at("Punch")
+        }), {
+            {"Necromancer", ClassInstance("Necromancer", 1)},
+        }, 
+        {}, 
+        {
+            ItemStack(8, 1),
+            ItemStack(9, 1),
         },
         1, 0
     ),
@@ -1028,16 +1896,116 @@ namespace DataComponents {
             }
         }
 
+        reader.close();
+
         return container;
     }
 }
 
+#pragma region Shops
+struct ShopGenerationRule {
+public:
+    std::function<bool(GameState&)> valid = nullptr;
+    std::function<void(GameState&, ShopInstance&)> generate = nullptr;
+};
+
+struct ShopCatalog {
+public:
+    size_t cost;
+    ItemStack stack;
+};
+
+struct ShopData {
+public:
+    std::string shopName;
+    std::vector<ShopGenerationRule> generationRules;
+};
+
+struct ShopInstance {
+public:
+    std::string shopName;
+    std::vector<ShopCatalog> catalog;
+};
+
+
+const std::unordered_map<std::string, ShopGenerationRule> SHARED_GENERATION_RULES = {
+    {
+        "Standard Potions", ShopGenerationRule {
+            [](GameState& a_gameState) {
+                return true;
+            },
+            [](GameState& a_gameState, ShopInstance& a_shop) {
+                a_shop.catalog.push_back(ShopCatalog { 5, ItemStack(1, 4 + DIE_SIXTEEN_DISTRIBUTION(a_gameState.generator)) });
+                a_shop.catalog.push_back(ShopCatalog { 5, ItemStack(2, 4 + DIE_SIXTEEN_DISTRIBUTION(a_gameState.generator)) });
+            }
+        }
+    },
+    {
+        "Standard Weaponry", ShopGenerationRule {
+            [](GameState& a_gameState) {
+                return DIE_SIX_DISTRIBUTION(a_gameState.generator) > 1;
+            },
+            [](GameState& a_gameState, ShopInstance& a_shop) {
+                switch (DIE_THREE_DISTRIBUTION(a_gameState.generator)) {
+                    case 1:
+                        a_shop.catalog.push_back(ShopCatalog { 10, ItemStack(5, 1) });
+                        break;
+                    case 2:
+                        a_shop.catalog.push_back(ShopCatalog { 10, ItemStack(6, 1) });
+                        break;
+                    case 3:
+                        a_shop.catalog.push_back(ShopCatalog {  5, ItemStack(7, 1) });
+                        break;
+                }
+            }
+        }
+    },
+    {
+        "Standard Keys", ShopGenerationRule {
+            [](GameState& a_gameState) {
+                return DIE_SIX_DISTRIBUTION(a_gameState.generator) > 4;
+            },
+            [](GameState& a_gameState, ShopInstance& a_shop) {
+                a_shop.catalog.push_back(ShopCatalog { 3, ItemStack(4, DIE_FOUR_DISTRIBUTION(a_gameState.generator) + DIE_FOUR_DISTRIBUTION(a_gameState.generator)) });
+            }
+        }
+    },
+};
+
+const std::unordered_map<std::string, ShopData> SHOP_DATA = {
+    {
+        "Barterer", ShopData {
+            "Barterer",
+            {
+                SHARED_GENERATION_RULES.at("Standard Potions"),
+                SHARED_GENERATION_RULES.at("Standard Weaponry"),
+                SHARED_GENERATION_RULES.at("Standard Keys"),
+            }
+        }
+    },
+};
+
+void GenerateShopInstance(GameState& a_gameState, const ShopData& a_shopData, ShopInstance& a_shopInstance) {
+    a_shopInstance.shopName = a_shopData.shopName;
+    for (const ShopGenerationRule& shopGenerationRule  : a_shopData.generationRules) {
+        if (shopGenerationRule.valid(a_gameState)) {
+            shopGenerationRule.generate(a_gameState, a_shopInstance);
+        }
+    }
+}
+#pragma endregion
+
 int main(int argc, char** argv) {
     //DataComponents::DataContainer container = DataComponents::ParseDataFile(std::filesystem::current_path().append("test.data"));
+    for (const StartData& start : LoadStartData(std::filesystem::current_path().append("starts.data"))) {
+        GameState::Starts.push_back(start);
+    }
     #pragma region Random Setup
     std::random_device random = std::random_device();
     GameState gameState = GameState(std::mt19937(random()));
     #pragma endregion
+
+    //std::cout << "The answer is: " << (std::pow(29, 452)) << "." << std::endl;
 
     //for (const std::pair<size_t, std::uniform_int_distribution<uint32_t>&>& dice : DICE) {
     //    std::cout << "DIE " << dice.first << "\n====================" << std::endl;
@@ -1054,6 +2022,8 @@ int main(int argc, char** argv) {
     const NPCTemplate NPC_TEMPLATES[] = {
         NPCTemplate {
             "Goblin Shaman",
+            12,
+            8,
             [](GameState& a_gameState, NPCData& a_npc) {
                 size_t healed = 0;
                 if (a_npc.curMana > 10 && DIE_TWO_DISTRIBUTION(a_gameState.generator) == 1) {
@@ -1083,6 +2053,8 @@ int main(int argc, char** argv) {
         },
         NPCTemplate {
             "Goblin Grunt",
+            4,
+            6,
             [](GameState& a_gameState, NPCData& a_npc) {
                 std::cout << "The Goblin Grunt swings their club at the player and ";
                 if (DIE_TWENTY_DISTRIBUTION(a_gameState.generator) >= a_gameState.player.armor) {
@@ -1094,36 +2066,6 @@ int main(int argc, char** argv) {
                 }
             }
         },
-    };
-
-    const ItemData ITEM_DATA[] = {
-        ItemData("Bean", "A single bean, you may only have 0b11111111 beans.", 0b11111111),
-        ItemData("HP Potion", "A HP Potion, restores 20 HP.", 
-            ItemUsage {
-                "Drink",
-                [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
-                    return a_gameState.player.curHP < a_gameState.player.maxHP;
-                },
-                [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
-                    a_gameState.player.Heal(20);
-                    a_gameState.player.UseItem(index);
-                }
-            }, 100
-        ),
-        ItemData("Mana Potion", "A Mana Potion, restores 20 Mana.", 
-            ItemUsage {
-                "Drink",
-                [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
-                    return a_gameState.player.curHP < a_gameState.player.maxHP;
-                },
-                [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
-                    a_gameState.player.RegainMana(20);
-                    a_gameState.player.UseItem(index);
-                }
-            }, 100
-        ),
-        ItemData("Dungeon Key", "An old key, goes to something important.", 15),
-        ItemData("Sewer Key", "A mucky key, might be useful.", 15),
     };
 
     const std::array<RoomData, 6> ROOM_DATA = {
@@ -1143,7 +2085,7 @@ int main(int argc, char** argv) {
             [](GameState& a_gameState, const RoomData& a_roomData) { return (a_gameState.curRoom % 6) > 3 ? 10 : 0; }, 
             false, 0, 1, 2, 4
         ),
-        RoomData("Lotus", "",
+        RoomData("Lotus", "The room branches into many different corridors, seemingly into new domains.",
             [](GameState& a_gameState, const RoomData& a_roomData) { return 20; }, 
             true, 0, 0, 2, 6
         ),
@@ -1182,7 +2124,7 @@ int main(int argc, char** argv) {
         }
     };
 
-    const std::array<Encounter, 5> ENCOUNTERS = {
+    const std::array<Encounter, 7> ENCOUNTERS = {
         Encounter {
             [](GameState& a_gameState) { return a_gameState.curRoom <= 0 ? 1 : 0; },
             nullptr
@@ -1224,6 +2166,25 @@ int main(int argc, char** argv) {
         },
         Encounter {
             [](GameState& a_gameState) { return a_gameState.curRoom > 0 ? 5 : 0; },
+            [](GameState& a_gameState) {
+                std::cout << "A restorative spring is in the area, ";
+
+                if (a_gameState.player.curHP == a_gameState.player.maxHP) {
+                    std::cout << "however, you are already at your maximum health." << std::endl;
+                } else if (a_gameState.player.curHP > a_gameState.player.maxHP) {
+                    std::cout << "however, you are healthier than is expected." << std::endl;
+                } else {
+                    uint32_t hpGain = std::min<uint32_t>(a_gameState.player.maxHP - a_gameState.player.curHP, 25);
+                    std::cout << "you have regained " << hpGain << " health." << std::endl;
+                    a_gameState.player.Heal(hpGain);
+                    if (a_gameState.player.curHP == a_gameState.player.maxHP) {
+                        std::cout << "Your health is fully replinished." << std::endl;
+                    }
+                }
+            }
+        },
+        Encounter {
+            [](GameState& a_gameState) { return a_gameState.curRoom > 0 ? 5 : 0; },
             [&ENTITY_TEMPLATES, &NPC_TEMPLATES, &NPC_MODIFIERS](GameState& a_gameState) {
                 a_gameState.rooms[a_gameState.curRoom].inhabitants.push_back(
                     NPCData(&ENTITY_TEMPLATES[0], &NPC_TEMPLATES[1])
@@ -1236,6 +2197,7 @@ int main(int argc, char** argv) {
                         NPCData(&ENTITY_TEMPLATES[0], &NPC_TEMPLATES[0])
                     )
                 );
+                a_gameState.player.gold += 10 + DIE_TWELVE_DISTRIBUTION(a_gameState.generator) + DIE_TWELVE_DISTRIBUTION(a_gameState.generator);
             }
         },
         Encounter {
@@ -1254,6 +2216,45 @@ int main(int argc, char** argv) {
                 }
                 
                 std::cout << "There is a training dummy in the middle of the room... You feel better at something." << std::endl;
+            }
+        },
+        Encounter {
+            [](GameState& a_gameState) { return (a_gameState.curRoom > 5 && a_gameState.player.gold >= 15) ? 3 : 0; },
+            [](GameState& a_gameState) {
+                size_t option = 0;
+                ShopInstance shop = ShopInstance();
+                GenerateShopInstance(a_gameState, SHOP_DATA.at("Barterer"), shop);
+                while (option != 3) {
+                    std::cout << "-------------------------------\n\x1b[1m" << shop.shopName << "\x1b[22m\n\nOptions:\n1) Buy\n2) Sell\n3) Exit\n\nOption: ";
+                    SafeInput<size_t>(option);
+                    switch (option) {
+                        case 1:
+                            std::cout << "-------------------------------\nGold: " << a_gameState.player.gold << "\n\nCatalog:\n";
+                            for (size_t i = 0; i < shop.catalog.size(); ++i) {
+                                const ItemData& itemType = ITEM_DATA[shop.catalog[i].stack.itemID];
+                                std::cout << (i + 1) << ") " << itemType.name << " (" << shop.catalog[i].cost << ") x" << shop.catalog[i].stack.stackSize << "\n";
+                            }
+                            std::cout << (shop.catalog.size() + 1) << ") Back\n\nOption: ";
+                            SafeInput<size_t>(option);
+
+                            if (--option < shop.catalog.size()) {
+                                if (shop.catalog[option].cost <= a_gameState.player.gold) {
+                                    a_gameState.player.gold -= shop.catalog[option].cost;
+                                    a_gameState.player.AddItem(shop.catalog[option].stack.itemID, 1);
+                                    std::cout << "You bought 1 " << ITEM_DATA[shop.catalog[option].stack.itemID].name << " for " << shop.catalog[option].cost << " gold." << std::endl;
+                                    if (--shop.catalog[option].stack.stackSize <= 0) {
+                                        shop.catalog.erase(shop.catalog.begin() + option);
+                                    }
+                                } else {
+                                    std::cout << "You do not have enough gold." << std::endl;
+                                }
+                            }
+                            break;
+                        case 2:
+                            std::cout << "They do not wish to buy anything from you..." << std::endl;
+                            break;
+                    }
+                }
             }
         },
     };
@@ -1444,45 +2445,109 @@ int main(int argc, char** argv) {
                         break;
                     case Menu::STATS:
                         std::cout 
-                            << "-------------------------------\nStats:\n\nHP: " 
+                            << "-------------------------------\n\x1b[1mStats:\x1b[22m\nHP: " 
                             << gameState.player.curHP << "/" << gameState.player.maxHP 
                             << "\nMana: " 
                             << gameState.player.curMana << "/" << gameState.player.maxMana 
-                            << "\n\nSkills:\n\n";
+                            << "\nXP: "
+                            << gameState.player.xp
+                            << "\nGold: "
+                            << gameState.player.gold
+                            << "\n\x1b[1mClasses:\x1b[22m\n";
+
+                        for (const std::pair<std::string, ClassInstance>& classPair : gameState.player.classes) {
+                            std::cout << classPair.first << "(" << classPair.second.level << "/" << CLASSES.at(classPair.first).levels.size() << "): " << CLASSES.at(classPair.first).description << "\n";
+                        }
+                            
+                        std::cout << "\n\x1b[1mSkills:\x1b[22m\n";
                         
                         for (std::pair<std::string, int32_t> skillPair : gameState.player.skills) {
                             std::cout << "- " << skillPair.first << ": " << skillPair.second << "\n";
                         }
                             
-                        std::cout << "\nOptions:\n1) Back\n\nOption: ";
+                        std::cout << "\nOptions:\n1) Level Up\n2) Back\n\nOption: ";
 
                         SafeInput<uint32_t>(choice);
 
                         switch (choice) {
                             case 1:
+                                gameState.menu = Menu::LEVEL_UP;
+                                break;
+                            case 2:
                                 gameState.menu = Menu::NONE;
                                 break;
                         }
                         break;
+                    case Menu::LEVEL_UP: {
+                        std::cout 
+                            << "-------------------------------\nXP: " 
+                            << gameState.player.xp
+                            << "\nClasses:\n";
+                        
+                        std::vector<std::string> classics = std::vector<std::string>();
+                        size_t accum = 1;
+                        for (const std::pair<std::string, Class>& classPair : CLASSES) {
+                            classics.push_back(classPair.first);
+                            std::cout << (accum++) << ") " << classPair.first << "(" << (gameState.player.classes.contains(classPair.first) ? (gameState.player.classes.at(classPair.first).level) : 0) << "/" << classPair.second.levels.size() << "): " << classPair.second.description << "\n";
+                        }
+                            
+                        std::cout << accum << ") Back\n\nOption: ";
+
+                        SafeInput<uint32_t>(choice);
+
+                        if (--choice < CLASSES.size()) {
+                            const Class& classRef = CLASSES.at(classics[choice]);
+                            size_t levelToUseRedone = (gameState.player.classes.contains(classRef.name) ? (gameState.player.classes.at(classRef.name).level + 1) : 1);
+                            if (classRef.levels.size() < levelToUseRedone) {
+                                std::cout << "Already max level." << std::endl;
+                            } else  {
+                                if (classRef.levels[levelToUseRedone - 1].applicable == nullptr || classRef.levels[levelToUseRedone - 1].applicable(gameState, gameState.player)) {
+                                    for (size_t levelUpEffect = 0; levelUpEffect < classRef.levels[levelToUseRedone - 1].levelUpEffects.size(); ++levelUpEffect) {
+                                        classRef.levels[levelToUseRedone - 1].levelUpEffects[levelUpEffect](gameState, gameState.player, false);
+                                    }
+
+                                    if (gameState.player.classes.contains(classRef.name)) {
+                                        ++gameState.player.classes.at(classRef.name).level;
+                                    } else {
+                                        gameState.player.classes.insert(std::pair<std::string, ClassInstance>(classRef.name, ClassInstance(classRef.name, 1)));
+                                    }
+                                }
+                            }
+                        } else if (choice == CLASSES.size()) {
+                            gameState.menu = Menu::STATS;
+                        }
+                        break;
+                    }
                     case Menu::INVENTORY:
                         std::cout << "-------------------------------\nInventory:\n";
                         for (size_t inventoryItem = 0; inventoryItem < gameState.player.items.size();) {
-                            std::cout << ++inventoryItem << ") "  << ITEM_DATA[gameState.player.items[inventoryItem - 1].itemID].name << " x" << gameState.player.items[inventoryItem - 1].stackSize << "/" << ITEM_DATA[gameState.player.items[inventoryItem - 1].itemID].maxStack << "\n -" << ITEM_DATA[gameState.player.items[inventoryItem - 1].itemID].description << "\n";
+                            std::cout << ++inventoryItem << ") [" << (gameState.player.equipped[inventoryItem - 1] ? 'X' : ' ') << "] " << ITEM_DATA[gameState.player.items[inventoryItem - 1].itemID].name << " x" << gameState.player.items[inventoryItem - 1].stackSize << "/" << ITEM_DATA[gameState.player.items[inventoryItem - 1].itemID].maxStack << "\n -" << ITEM_DATA[gameState.player.items[inventoryItem - 1].itemID].description << "\n";
                         }
                         std::cout << (gameState.player.items.size() + 1) << ") Back\n\nOption: ";
 
                         SafeInput<uint32_t>(choice);
 
                         if (--choice < gameState.player.items.size()) {
-                            const ItemData& item = ITEM_DATA[gameState.player.items[choice].itemID];
-                            if (item.usage.usage != nullptr) {
-                                if (item.usage.condition == nullptr || item.usage.condition(gameState, gameState.player.items[choice], choice)) {
-                                    item.usage.usage(gameState, gameState.player.items[choice], choice);
-                                } else {
-                                    std::cout << "You don't know why you would use this right now." << std::endl;
-                                }
-                            } else {
-                                std::cout << "This item is not usable." << std::endl;
+                            size_t itemIndex = choice;
+                            ItemStack& itemStack = gameState.player.items[itemIndex];
+                            const ItemData& itemType = ITEM_DATA[itemStack.itemID];
+                            std::cout << "-------------------------------\n" << itemType.name << " x" << itemStack.stackSize << "/" << itemType.maxStack << "\n- " << itemType.description << "\nEquipped [" << (gameState.player.equipped[itemIndex] ? 'X' : ' ') << "]\n\n1) Use\n2) " << (gameState.player.equipped[itemIndex] ? "Unequip" : "Equip") << "\n3) Back\n\nOption: ";
+                            SafeInput<uint32_t>(choice);
+                            switch (choice) {
+                                case 1:
+                                    if (itemType.usage.usage != nullptr) {
+                                        if (itemType.usage.condition == nullptr || itemType.usage.condition(gameState, itemStack, itemIndex)) {
+                                            itemType.usage.usage(gameState, itemStack, itemIndex);
+                                        } else {
+                                            std::cout << "You don't know why you would use this right now." << std::endl;
+                                        }
+                                    } else {
+                                        std::cout << "This item is not usable." << std::endl;
+                                    }
+                                    break;
+                                case 2:
+                                    gameState.player.equipped[itemIndex] = !gameState.player.equipped[itemIndex];
+                                    break;
                             }
                         } else if (choice == gameState.player.items.size()) {
                             gameState.menu = Menu::NONE;
@@ -1524,7 +2589,8 @@ int main(int argc, char** argv) {
                                     std::cout << (npcIndex + 1)  << ") " << room->inhabitants[npcIndex].name<< "\n";
 
                                     if (
-                                        gameState.player.perks.test(static_cast<size_t>(Perks::INSIGHT))
+                                        gameState.player.perks.test(static_cast<size_t>(Perks::INSIGHT)) ||
+                                        gameState.player.GetSkillModifier("Brawler") >= 6
                                     ) {
                                         std::cout << "- HP [" << room->inhabitants[npcIndex].curHP << "/" << room->inhabitants[npcIndex].maxHP << "]\n";
                                     }
@@ -1561,7 +2627,6 @@ int main(int argc, char** argv) {
 
                                 if (enemiesGo) {
                                     gameState.player.usedTurns = 0;
-                                    //std::cout << "Tonk: " << room->inhabitants.size() << std::endl;
 
                                     for (size_t npcIndex = 0; npcIndex < room->inhabitants.size(); ++npcIndex) {
                                         if (room->inhabitants[npcIndex].stunned) {
@@ -1581,12 +2646,10 @@ int main(int argc, char** argv) {
 
                                     std::vector<size_t> remove = std::vector<size_t>();
 
-                                    //std::cout << "Bonk: " << room->inhabitants.size() << std::endl;
-
                                     for (int32_t j = room->inhabitants.size() - 1; j > -1; --j) {
-                                        //std::cout << (j + 1) << ") " << room->inhabitants[j].curHP << std::endl;
                                         if (room->inhabitants[j].curHP <= 0) {
-                                            //std::cout << "Killing " << j << std::endl;
+                                            gameState.player.xp += room->inhabitants[j].xp;
+                                            gameState.player.gold += room->inhabitants[j].gold;
                                             remove.push_back(j);
                                         } else {
                                             room->inhabitants[j].TurnEnd();
@@ -1600,7 +2663,6 @@ int main(int argc, char** argv) {
 
                                     if (gameState.player.curHP <= 0) {
                                         std::cout << "\nYou collapse to the floor, dead." << std::endl;
-                                        // TODO: Switch to a Stats Screen
                                         gameState.screen = Screen::GAME_OVER;
                                         gameState.menu = Menu::NONE;
                                     } else {
@@ -1631,7 +2693,17 @@ int main(int argc, char** argv) {
                     << gameState.player.maxHP 
                     << "\nMana: " 
                     << gameState.player.maxMana 
-                    << "\n\n>> Perks\n";
+                    << "\nXP: " 
+                    << gameState.player.xp 
+                    << "\nGold: " 
+                    << gameState.player.gold 
+                    << "\n\n>> Classes\n";
+
+                for (const std::pair<std::string, ClassInstance>& classPair : gameState.player.classes) {
+                    std::cout << classPair.first << "(" << classPair.second.level << "/" << CLASSES.at(classPair.first).levels.size() << "): " << CLASSES.at(classPair.first).description << "\n";
+                }
+                    
+                std::cout << "\n>> Perks\n";
 
                 for (size_t perkIndex = 0; perkIndex < (size_t)Perks::SIZE; ++perkIndex) {
                     if (gameState.player.perks.test(perkIndex)) {
@@ -1645,6 +2717,9 @@ int main(int argc, char** argv) {
                             case Perks::HARD_HITTER:
                                 std::cout << " - Hard Hitter\n";
                                 break;
+                            case Perks::HORDE_SLAYER:
+                                std::cout << " - Horde Slayer\n";
+                                break;
                         }
                     }
                 }
@@ -1657,7 +2732,7 @@ int main(int argc, char** argv) {
 
                 std::cout << "\n>> Inventory\n";
                 for (size_t inventoryItem = 0; inventoryItem < gameState.player.items.size();) {
-                    std::cout << ++inventoryItem << ". "  << ITEM_DATA[gameState.player.items[inventoryItem - 1].itemID].name << " x" << gameState.player.items[inventoryItem - 1].stackSize << "/" << ITEM_DATA[gameState.player.items[inventoryItem - 1].itemID].maxStack << "\n -" << ITEM_DATA[gameState.player.items[inventoryItem - 1].itemID].description << "\n";
+                    std::cout << ++inventoryItem << ". [" << (gameState.player.equipped[inventoryItem - 1] ? 'X' : ' ') << "] " << ITEM_DATA[gameState.player.items[inventoryItem - 1].itemID].name << " x" << gameState.player.items[inventoryItem - 1].stackSize << "/" << ITEM_DATA[gameState.player.items[inventoryItem - 1].itemID].maxStack << "\n -" << ITEM_DATA[gameState.player.items[inventoryItem - 1].itemID].description << "\n";
                 }
 
                 std::cout << "-------------------------------\n1) Title Screen\n2) Quit\n------------------------------\n\nOption: ";

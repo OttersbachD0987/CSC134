@@ -1,0 +1,113 @@
+Default
+A simple start to the game, good for beginners.
+
+100;100;10;10;
+
+Martial Combat:2,
+Unarmed Combat:1,
+Brawling:1,
+END:
+
+Punch,
+END,
+
+Fighter:1,
+END:
+
+INSIGHT,
+END,
+
+1x4,
+6x1,
+ENDx
+
+1;0;
+
+CONTINUE
+
+Normal
+Similar to Default, but with less extra help.
+
+100;100;10;10;
+
+Martial Combat:2,
+END:
+
+Punch,
+END,
+
+Fighter:1,
+END:
+
+END,
+
+1x2,
+7x1,
+ENDx
+
+1;0;
+
+CONTINUE
+
+    StartData(
+        "Trivial",
+        "A trivial start to the game, good for people bad at the game.",
+        EntityTemplate(150, 150, 10, 12, {
+            {"Martial Combat", 3},
+            {"Unarmed Combat", 3},
+            {"Brawling"      , 3},
+        }, {
+            STANDARD_ACTIONS.at("Punch"),
+        }), {
+            {"Fighter", ClassInstance("Fighter", 1)},
+        }, {
+            (size_t)Perks::INSIGHT,
+            (size_t)Perks::HORDE_SLAYER,
+        }, {
+            ItemStack(1, 16),
+            ItemStack(2, 16),
+            ItemStack(3, 5),
+            ItemStack(4, 5),
+            ItemStack(5, 1),
+        },
+        1, 0
+    ),
+    StartData(
+        "Wretch",
+        "This is hard mode, no mana, no perks, no items, no classes.",
+        EntityTemplate(100, 0, 0, 10, 
+        {}, {
+            STANDARD_ACTIONS.at("Punch")
+        }), 
+        {}, 
+        {}, 
+        {},
+        1, 0
+    ),
+
+CONTINUE
+
+Occultist
+They say that the Ars Puppetarii Mortui hold secrets not meant for mortals, you think they're just stupid.
+
+65;175;15;10;
+
+Knowledge of Death:2,
+Necromancy:1,
+END:
+
+Punch,
+END,
+
+Necromancer:1,
+END:
+
+END,
+
+8x1,
+9x1,
+ENDx
+
+1;0;
+
+FINAL
