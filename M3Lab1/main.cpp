@@ -66,11 +66,13 @@ std::uniform_int_distribution<uint32_t> DIE_HUNDRED_DISTRIBUTION = std::uniform_
 
 std::unordered_map<uint32_t, std::uniform_int_distribution<uint32_t>&> DICE = {
     {  2, DIE_TWO_DISTRIBUTION    },
+    {  3, DIE_THREE_DISTRIBUTION  },
     {  4, DIE_FOUR_DISTRIBUTION   },
     {  6, DIE_SIX_DISTRIBUTION    },
     {  8, DIE_EIGHT_DISTRIBUTION  },
     { 10, DIE_TEN_DISTRIBUTION    },
     { 12, DIE_TWELVE_DISTRIBUTION },
+    { 16, DIE_SIXTEEN_DISTRIBUTION},
     { 20, DIE_TWENTY_DISTRIBUTION },
     {100, DIE_HUNDRED_DISTRIBUTION},
 };
@@ -122,7 +124,9 @@ public:
 
 struct EntityData;
 struct GameState;
+struct ItemData;
 struct ItemStack;
+struct Class;
 struct NPCData;
 struct PlayerData;
 struct RoomInstance;
@@ -185,6 +189,16 @@ public:
     std::function<void(GameState&, EntityData&)> onRemove = nullptr;
 };
 
+enum struct DamageType {
+
+};
+
+namespace {
+    extern const std::unordered_map<std::string, Class> CLASSES;
+    extern const std::unordered_map<std::string, TimedEffect> STANDARD_TIMED_EFFECTS;
+    extern const ItemData ITEM_DATA[];
+}
+
 struct EntityData {
 public:
     int32_t  maxHP;                                  //< The max HP of the entity.
@@ -213,6 +227,8 @@ public:
         this->skills = a_entityTemplate->skills;
         this->actions = a_entityTemplate->actions;
     }
+
+    virtual int32_t GetEffectiveArmor(void) = 0;
 
     virtual void Hurt(int32_t) = 0;
     virtual void Heal(int32_t) = 0;
@@ -316,19 +332,108 @@ public:
     }
 };
 
+enum struct ItemStackDeserializationMode {
+    COLLECTING_ID,
+    COLLECTING_STACK,
+    COLLECTING_METAKEY,
+    COLLECTING_METAVALUE,
+    FINISHED
+};
+
 struct ItemStack {
 public:
     size_t itemID;
     uint32_t stackSize;
+    std::unordered_map<std::string, int32_t> metadata;
 
     ItemStack(void) {
         this->itemID = 0;
         this->stackSize = 0;
+        this->metadata = std::unordered_map<std::string, int32_t>();
     }
 
     ItemStack(size_t a_itemID, uint32_t a_stackSize) {
         this->itemID = a_itemID;
         this->stackSize = a_stackSize;
+        this->metadata = std::unordered_map<std::string, int32_t>();
+    }
+
+    ItemStack(size_t a_itemID, uint32_t a_stackSize, const std::unordered_map<std::string, int32_t>& a_metadata) {
+        this->itemID = a_itemID;
+        this->stackSize = a_stackSize;
+        this->metadata = a_metadata;
+    }
+
+    int32_t GetMetadata(const std::string& a_key, int32_t a_default = 0) {
+        return metadata.contains(a_key) ? metadata.at(a_key) : a_default;
+    }
+
+    static ItemStack FromString(std::string_view a_serialized) {
+        ItemStack itemStack;
+        std::string collector = "";
+        std::string stringStorage = "";
+        int32_t intStorage = 0;
+        ItemStackDeserializationMode mode = ItemStackDeserializationMode::COLLECTING_ID;
+        for (char character : a_serialized) {
+            switch (mode) {
+                case ItemStackDeserializationMode::COLLECTING_ID:
+                    switch (character) {
+                        case 'x':
+                            intStorage = std::stoi(collector);
+                            collector = "";
+                            mode = ItemStackDeserializationMode::COLLECTING_STACK;
+                            break;
+                        default:
+                            collector += character;
+                    }
+                    break;
+                case ItemStackDeserializationMode::COLLECTING_STACK:
+                    switch (character) {
+                        case '(':
+                            itemStack = ItemStack(intStorage, std::stoi(collector));
+                            collector = "";
+                            mode = ItemStackDeserializationMode::COLLECTING_METAKEY;
+                            break;
+                        case ';':
+                            itemStack = ItemStack(intStorage, std::stoi(collector));
+                            collector = "";
+                            mode = ItemStackDeserializationMode::FINISHED;
+                            break;
+                        default:
+                            collector += character;
+                    }
+                    break;
+                case ItemStackDeserializationMode::COLLECTING_METAKEY:
+                    switch (character) {
+                        case ':':
+                            stringStorage = collector;
+                            collector = "";
+                            mode = ItemStackDeserializationMode::COLLECTING_METAVALUE;
+                            break;
+                        default:
+                            collector += character;
+                    }
+                    break;
+                case ItemStackDeserializationMode::COLLECTING_METAVALUE:
+                    switch (character) {
+                        case ';':
+                            itemStack.metadata.emplace(stringStorage, std::stoi(collector));
+                            collector = "";
+                            mode = ItemStackDeserializationMode::COLLECTING_METAKEY;
+                            break;
+                        case ')':
+                            itemStack.metadata.emplace(stringStorage, std::stoi(collector));
+                            collector = "";
+                            mode = ItemStackDeserializationMode::FINISHED;
+                            break;
+                        default:
+                            collector += character;
+                    }
+                    break;
+            }
+        }
+
+        return itemStack;
     }
 };
 
@@ -473,6 +578,19 @@ public:
         return classes.contains(a_class) ? classes.at(a_class).level + 1 : 0;
     }
 
+    int32_t GetEffectiveArmor(void) {
+        int32_t effectiveArmor = armor;
+        for (size_t i = 0; i < items.size(); ++i) {
+            if (equipped[i]) {
+                effectiveArmor += items[i].GetMetadata("ToArmor");
+                if (ITEM_DATA[items[i].itemID].tags.contains("Armor")) {
+                    effectiveArmor += ITEM_DATA[items[i].itemID].tags.at("Armor");
+                }
+            }
+        }
+        return effectiveArmor;
+    }
+
     void Hurt(int32_t a_damage) {
         curHP = std::max<int32_t>(curHP - a_damage, 0);
         if (curHP <= 0) {
@@ -525,6 +643,10 @@ public:
         this->xp = a_npcTemplate->xp;
         this->gold = a_npcTemplate->gold;
         this->aiFunction = &a_npcTemplate->ai;
+    }
+
+    int32_t GetEffectiveArmor(void) {
+        return armor;
     }
 
     void Hurt(int32_t a_damage) {
@@ -663,11 +785,6 @@ enum class Menu {
 };
 #pragma endregion
 
-namespace {
-    extern const std::unordered_map<std::string, Class> CLASSES;
-    extern const std::unordered_map<std::string, TimedEffect> STANDARD_TIMED_EFFECTS;
-}
-
 struct StartData {
 public:
     std::string name;
@@ -794,121 +911,6 @@ public:
     std::function<void(GameState&)> event = nullptr;
 };
 
-#pragma region Items
-const ItemData ITEM_DATA[] = {
-    ItemData("Bean", "A single bean, you may only have 0b11111111 beans.", 
-        0b11111111
-    ), // 0
-    ItemData("HP Potion", "A HP Potion, restores 20 HP.", {
-            {"Consumable", 0},
-            {"Potion"    , 0},
-            {"HPRegain"  , 0},
-        }, ItemUsage {
-            "Drink",
-            [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
-                return a_gameState.player.curHP < a_gameState.player.maxHP;
-            },
-            [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
-                a_gameState.player.Heal(20);
-                a_gameState.player.UseItemAt(index);
-            }
-        }, 100
-    ), // 1
-    ItemData("Mana Potion", "A Mana Potion, restores 20 Mana.", {
-            {"Consumable", 0},
-            {"Potion"    , 0},
-            {"ManaRegain", 0},
-        }, ItemUsage {
-            "Drink",
-            [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
-                return a_gameState.player.curMana < a_gameState.player.maxMana;
-            },
-            [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
-                a_gameState.player.RegainMana(20);
-                a_gameState.player.UseItemAt(index);
-            }
-        }, 100
-    ), // 2
-    ItemData("Dungeon Key", "An old key, goes to something important.", {
-            {"Key", 0},
-        }, 15
-    ), // 3
-    ItemData("Sewer Key", "A mucky key, might be useful.", {
-            {"Key", 0},
-        }, 15
-    ), // 4
-    ItemData("Long Sword", "A long sword, good in skilled hands.", {
-            {"Blade", (int32_t)BladeType::LONG_SWORD},
-        }, 1
-    ), // 5
-    ItemData("Short Sword", "A short sword, good in skilled hands.", {
-            {"Blade", (int32_t)BladeType::SHORT_SWORD},
-        }, 1
-    ), // 6
-    ItemData("Dagger", "A small dagger, good in skilled hands.", {
-            {"Blade", (int32_t)BladeType::DAGGER},
-        }, 1
-    ), // 7
-    ItemData("Ritual Dagger", "An ornate dagger, bleeding red metals comprise it's form.", {
-            {"Blade", (int32_t)BladeType::DAGGER},
-        }, 1
-    ), // 8
-    ItemData("Ars Puppetarii Mortui", "A grimoire containing some of the most abhorred gramrye known to mortals. It is woven from skin, but of what, you do not know.", {
-            {"Tome", 0},
-            {"Necromantic Focus", 5},
-        }, ItemUsage {
-            "Study",
-            [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
-                return a_gameState.player.xp > 8;
-            },
-            [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
-                std::cout << "You flip through the pages of this wretched tome..." << std::endl;
-                int32_t xpCost = DIE_EIGHT_DISTRIBUTION(a_gameState.generator);
-                switch (DIE_TWENTY_DISTRIBUTION(a_gameState.generator)) {
-                    case 1:
-                    case 2:
-                    case 3:
-                    case 4:
-                    case 5:
-                    case 6:
-                    case 7:
-                        a_gameState.player.RegainMana(xpCost * DIE_FOUR_DISTRIBUTION(a_gameState.generator));
-                        std::cout << "You feel your mana rejuvinate." << std::endl;
-                        break;
-                    case 8:
-                    case 9:
-                    case 10:
-                    case 11:
-                    case 12:
-                    case 13:
-                    case 14:
-                        a_gameState.player.Heal(xpCost * DIE_FOUR_DISTRIBUTION(a_gameState.generator));
-                        std::cout << "You feel your flesh knit together." << std::endl;
-                        break;
-                    case 15:
-                    case 16:
-                    case 17:
-                        a_gameState.player.AddSkillModifier("Knowledge of Death", xpCost);
-                        std::cout << "You feel your understanding of death increase." << std::endl;
-                        break;
-                    case 18:
-                    case 19:
-                        a_gameState.player.armor += 1;
-                        std::cout << "You feel your skin calcify." << std::endl;
-                        break;
-                    case 20:
-                        a_gameState.player.Hurt(xpCost * DIE_THREE_DISTRIBUTION(a_gameState.generator));
-                        std::cout << "You feel your lungs collapse, before ancient air refills them... Something has changed." << std::endl;
-                        break;
-                }
-                a_gameState.player.xp -= xpCost;
-            }
-        }, 1
-    ), // 9
-};
-
-#pragma endregion
-
 const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
     {
         "Punch",  Action {
@@ -928,7 +930,7 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
                 }
                 int32_t roll = DIE_TWENTY_DISTRIBUTION(a_gameState.generator);
                 int32_t result = roll + modifier;
-                if (roll == 20 || result >= a_target->armor) {
+                if (roll == 20 || result >= a_target->GetEffectiveArmor()) {
                     int32_t damage = 0;
                     int32_t damageModifier = modifier * 0.5;
                     int32_t damageTier = 1;
@@ -996,6 +998,8 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
                     std::cout << "and misses with a " << result << " (" << roll << " + " << modifier << ").\n" << std::endl;
                 }
 
+                EatInput();
+
                 PlayerData* player = dynamic_cast<PlayerData*>(a_caster);
                 if (player != nullptr) {
                     ++player->usedTurns;
@@ -1014,7 +1018,9 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
                 const ItemData& itemType = ITEM_DATA[itemStack.itemID];
                 BladeType bladeType = (BladeType)itemType.tags.at("Blade");
                 std::cout << "The player swings their " << itemType.name << " ";
-                int32_t modifier = a_caster->GetSkillModifier("Martial Combat");
+                int32_t modifier = 
+                    a_caster->GetSkillModifier("Martial Combat") +
+                    itemStack.GetMetadata("ToHit", 0);
                 switch (bladeType) {
                     case BladeType::SHORT_SWORD:
                     case BladeType::LONG_SWORD:
@@ -1035,7 +1041,7 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
                     }
                 }
                 int32_t result = roll + modifier;
-                if (roll == 20 || result >= a_target->armor) {
+                if (roll == 20 || result >= a_target->GetEffectiveArmor()) {
                     int32_t damage = 0;
                     int32_t damageModifier = modifier * 0.5;
                     int32_t damageTier = 1;
@@ -1104,7 +1110,7 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
 
                     a_target->Hurt(damage + damageModifier);
 
-                    std::cout << "and hits with a " << result << " (" << roll << " + " << modifier << "), dealing " << (damage + damageModifier) << " (" << damage; 
+                    std::cout << "and hits with a " << result << " (" << roll << " + " << modifier << "), dealing " << (damage + damageModifier) << " (" << damage;
                     
                     switch (bladeType) {
                         case BladeType::DAGGER:
@@ -1158,6 +1164,8 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
                     std::cout << "and misses with a " << result << " (" << roll << " + " << modifier << ").\n" << std::endl;
                 }
 
+                EatInput();
+
                 if (a_gameState.rooms[a_gameState.curRoom].LivingInhabitants() <= 1 || a_target->curHP > 0 || DIE_THREE_DISTRIBUTION(a_gameState.generator) != 1) {
                     PlayerData* player = dynamic_cast<PlayerData*>(a_caster);
                     if (player != nullptr) {
@@ -1187,7 +1195,7 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
                 size_t opponents = a_gameState.rooms[a_gameState.curRoom].LivingInhabitants();
                 int32_t roll = DIE_TWENTY_DISTRIBUTION(a_gameState.generator);
                 int32_t result = roll + modifier;
-                if (roll == 20 || result >= a_target->armor) {
+                if (roll == 20 || result >= a_target->GetEffectiveArmor()) {
                     int32_t damage = 0;
                     int32_t damageModifier = modifier + opponents;
 
@@ -1202,6 +1210,7 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
                         std::cout << " - " << -damageModifier;
                     }
                     std::cout << ").\n" << std::endl;
+                    EatInput();
 
                     for (size_t i = 0; i < a_gameState.rooms[a_gameState.curRoom].inhabitants.size(); ++i) {
                         if (a_gameState.rooms[a_gameState.curRoom].inhabitants[i].curHP > 0) {
@@ -1227,9 +1236,12 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
                                 a_caster->RegainMana(a_gameState.rooms[a_gameState.curRoom].inhabitants[i].maxHP * 0.15);
                             }
                         }
+
+                        EatInput();
                     }
                 } else {
                     std::cout << "and misses with a " << result << " (" << roll << " + " << modifier << ").\n" << std::endl;
+                    EatInput();
                 }
 
                 PlayerData* player = dynamic_cast<PlayerData*>(a_caster);
@@ -1262,7 +1274,7 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
                 size_t opponents = a_gameState.rooms[a_gameState.curRoom].LivingInhabitants();
                 int32_t roll = DIE_TWENTY_DISTRIBUTION(a_gameState.generator);
                 int32_t result = roll + modifier;
-                if (roll == 20 || result >= a_target->armor) {
+                if (roll == 20 || result >= a_target->GetEffectiveArmor()) {
                     NPCData* npc = dynamic_cast<NPCData*>(a_target);
                     if (npc != nullptr) {
                         std::cout << "and a dull thud rings out as the color drains away from the " << npc->name << "." << std::endl;
@@ -1277,6 +1289,8 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
                 } else {
                     std::cout << "and misses with a " << result << " (" << roll << " + " << modifier << ").\n" << std::endl;
                 }
+
+                EatInput();
 
                 PlayerData* player = dynamic_cast<PlayerData*>(a_caster);
                 if (player != nullptr) {
@@ -1309,12 +1323,47 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
                     }
                 }
 
+                EatInput();
+
                 PlayerData* player = dynamic_cast<PlayerData*>(a_caster);
                 if (player != nullptr) {
                     ++player->usedTurns;
                 }
 
                 a_caster->DrainMana(10);
+                a_caster->manaSickness += 1;
+            }
+        }
+    },
+    {
+        "Garden of Rot",  Action {
+            "Garden of Rot",
+            [](GameState& a_gameState, EntityData* a_caster, EntityData* a_target) { 
+                return a_caster->curMana > 45; 
+            },
+            [](GameState& a_gameState, EntityData* a_caster, EntityData* a_target) {
+                std::cout << "The player crushes a heart, and from the ground a flower bursts from the center of the room." << std::endl;
+                int32_t modifier = 
+                    a_caster->GetSkillModifier("Persuasion") + 
+                    a_caster->GetSkillModifier("Knowledge of Death") + 
+                    a_caster->GetSkillModifier("Necromancy");
+                for (size_t i = 0; i < a_gameState.player.items.size(); ++i) { 
+                    if (a_gameState.player.equipped[i] && ITEM_DATA[a_gameState.player.items[i].itemID].tags.contains("Necromantic Focus")) {
+                        modifier += ITEM_DATA[a_gameState.player.items[i].itemID].tags.at("Necromantic Focus");
+                    }
+                }
+                size_t opponents = a_gameState.rooms[a_gameState.curRoom].LivingInhabitants();
+                int32_t roll = DIE_TWENTY_DISTRIBUTION(a_gameState.generator);
+                int32_t result = roll + modifier;
+
+                EatInput();
+
+                PlayerData* player = dynamic_cast<PlayerData*>(a_caster);
+                if (player != nullptr) {
+                    ++player->usedTurns;
+                }
+
+                a_caster->DrainMana(45);
                 a_caster->manaSickness += 1;
             }
         }
@@ -1491,17 +1540,139 @@ namespace {
             }
         },
     };
+
+    #pragma region Items
+    const ItemData ITEM_DATA[] = {
+        ItemData("Bean", "A single bean, you may only have 0b11111111 beans.", 
+            0b11111111
+        ), // 0
+        ItemData("HP Potion", "A HP Potion, restores 20 HP.", {
+                {"Consumable", 0},
+                {"Potion"    , 0},
+                {"HPRegain"  , 0},
+            }, ItemUsage {
+                "Drink",
+                [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
+                    return a_gameState.player.curHP < a_gameState.player.maxHP;
+                },
+                [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
+                    a_gameState.player.Heal(20);
+                    a_gameState.player.UseItemAt(index);
+                }
+            }, 100
+        ), // 1
+        ItemData("Mana Potion", "A Mana Potion, restores 20 Mana.", {
+                {"Consumable", 0},
+                {"Potion"    , 0},
+                {"ManaRegain", 0},
+            }, ItemUsage {
+                "Drink",
+                [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
+                    return a_gameState.player.curMana < a_gameState.player.maxMana;
+                },
+                [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
+                    a_gameState.player.RegainMana(20);
+                    a_gameState.player.UseItemAt(index);
+                }
+            }, 100
+        ), // 2
+        ItemData("Dungeon Key", "An old key, goes to something important.", {
+                {"Key", 0},
+            }, 15
+        ), // 3
+        ItemData("Sewer Key", "A mucky key, might be useful.", {
+                {"Key", 0},
+            }, 15
+        ), // 4
+        ItemData("Long Sword", "A long sword, good in skilled hands.", {
+                {"Blade", (int32_t)BladeType::LONG_SWORD},
+            }, 1
+        ), // 5
+        ItemData("Short Sword", "A short sword, good in skilled hands.", {
+                {"Blade", (int32_t)BladeType::SHORT_SWORD},
+            }, 1
+        ), // 6
+        ItemData("Dagger", "A small dagger, good in skilled hands.", {
+                {"Blade", (int32_t)BladeType::DAGGER},
+            }, 1
+        ), // 7
+        ItemData("Ritual Dagger", "An ornate dagger, bleeding red metals comprise it's form.", {
+                {"Blade", (int32_t)BladeType::DAGGER},
+            }, 1
+        ), // 8
+        ItemData("Ars Puppetarii Mortui", "A grimoire containing some of the most abhorred gramrye known to mortals. It is woven from skin, but of what, you do not know.", {
+                {"Tome"             , 0},
+                {"Necromantic Focus", 5},
+            }, ItemUsage {
+                "Study",
+                [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
+                    return a_gameState.player.xp > 8;
+                },
+                [](GameState& a_gameState, const ItemStack& a_itemStack, size_t index = -1) {
+                    std::cout << "You flip through the pages of this wretched tome..." << std::endl;
+                    int32_t xpCost = DIE_EIGHT_DISTRIBUTION(a_gameState.generator);
+                    switch (DIE_TWENTY_DISTRIBUTION(a_gameState.generator)) {
+                        case 1:
+                        case 2:
+                        case 3:
+                        case 4:
+                        case 5:
+                        case 6:
+                        case 7:
+                            a_gameState.player.RegainMana(xpCost * DIE_FOUR_DISTRIBUTION(a_gameState.generator));
+                            std::cout << "You feel your mana rejuvinate." << std::endl;
+                            break;
+                        case 8:
+                        case 9:
+                        case 10:
+                        case 11:
+                        case 12:
+                        case 13:
+                        case 14:
+                            a_gameState.player.Heal(xpCost * DIE_FOUR_DISTRIBUTION(a_gameState.generator));
+                            std::cout << "You feel your flesh knit together." << std::endl;
+                            break;
+                        case 15:
+                        case 16:
+                        case 17:
+                            a_gameState.player.AddSkillModifier("Knowledge of Death", xpCost);
+                            std::cout << "You feel your understanding of death increase." << std::endl;
+                            break;
+                        case 18:
+                        case 19:
+                            a_gameState.player.armor += 1;
+                            std::cout << "You feel your skin calcify." << std::endl;
+                            break;
+                        case 20:
+                            a_gameState.player.Hurt(xpCost * DIE_THREE_DISTRIBUTION(a_gameState.generator));
+                            std::cout << "You feel your lungs collapse, before ancient air refills them... Something has changed." << std::endl;
+                            break;
+                    }
+                    a_gameState.player.xp -= xpCost;
+                }
+            }, 1
+        ), // 9
+        ItemData("Chainmail Armor", "Simple chain link armor for protection.", {
+                {"Armor", 2},
+            }, 1
+        ), // 10
+    };
+
+    #pragma endregion
 }
 
 #pragma region Stats
 /*
-Martial Combat  - 
-Melee Combat    - Multiple Opponents
-Unarmed Combat  - No weapons
-Brawling        - 
-Swordsmanship   - Skill with Sword
-Dueling         - Fighting one opponent
-Persuasion      - Convincing people and things through words
+Martial Combat     - 
+Melee Combat       - Multiple Opponents
+Unarmed Combat     - No weapons
+Brawling           - 
+Swordsmanship      - Skill with Sword
+Dueling            - Fighting one opponent
+Persuasion         - Convincing people and things through words
+Knowledge of Death - Knowledge of death and the dead
+Necromancy         - Knowledge in the arcane branch of necromancy (death magic)
+Geomancy           - Knowledge in the arcane branch of geomancy (earth magic)
 */
 #pragma endregion
 
@@ -1646,7 +1817,7 @@ std::vector<StartData> LoadStartData(std::filesystem::path a_path) {
             case 9:
                 stringStorage = buffer;
                 if (stringStorage == "END") {
-                    mode = 4;
+                    mode = 1;
                     ++step;
                     reader.getline(buffer, 256);
                     reader.getline(buffer, 256);
@@ -1671,20 +1842,18 @@ std::vector<StartData> LoadStartData(std::filesystem::path a_path) {
                 }
                 break;
             case 10:
-                if (mode == 4) {
-                    intStorage = std::stoi(buffer);
-                    if (intStorage == -1) {
+                if (mode == 1) {
+                    stringStorage = buffer;
+                    if (stringStorage == "END") {
                         mode = 2;
                         ++step;
                         reader.getline(buffer, 256);
                         reader.getline(buffer, 256);
                     } else {
+                        inventory.push_back(ItemStack::FromString(stringStorage));
                         mode = 1;
-                    }
-                } else if (mode == 1) {
-                    inventory.push_back(ItemStack(intStorage, std::stoi(buffer)));
-                    mode = 4;
                     reader.getline(buffer, 256);
+                    }
                 } else {
                     std::cout << "ERROR: mode{" << mode << "} IS NOT VALID" << std::endl;
                     running = false;
@@ -2244,6 +2413,9 @@ const std::unordered_map<std::string, ShopGenerationRule> SHARED_GENERATION_RULE
                         a_shop.catalog.push_back(ShopCatalog {  5, ItemStack(7, 1) });
                         break;
                 }
+                if (DIE_FOUR_DISTRIBUTION(a_gameState.generator) == 1) {
+                    a_shop.catalog.back().stack.metadata.emplace("ToHit", DIE_SIX_DISTRIBUTION(a_gameState.generator));
+                }
             }
         }
     },
@@ -2305,6 +2477,7 @@ const std::unordered_map<std::string, RoomAction> ROOM_ACTIONS = {
                 }
                 a_gameState.player.gold += goldAmount;
                 std::cout << "You find " << goldAmount << " (" << a_gameState.rooms[a_gameState.curRoom].flags.at("TreasureTrove_Count") << "d" << a_gameState.rooms[a_gameState.curRoom].flags.at("TreasureTrove_Dice") << ") gold." << std::endl;
+                EatInput();
             }
         }
     }
@@ -2352,7 +2525,7 @@ int main(int argc, char** argv) {
 
                 if (healed == 0) {
                     std::cout << "The Goblin Shaman swings their staff at the player and ";
-                    if (DIE_TWENTY_DISTRIBUTION(a_gameState.generator) >= a_gameState.player.armor) {
+                    if (DIE_TWENTY_DISTRIBUTION(a_gameState.generator) >= a_gameState.player.GetEffectiveArmor()) {
                         int32_t damage = DIE_FOUR_DISTRIBUTION(a_gameState.generator);
                         a_gameState.player.Hurt(damage);
                         std::cout << "hits, dealing " << damage << " damage." << std::endl;
@@ -2365,14 +2538,14 @@ int main(int argc, char** argv) {
                     std::cout << "The Goblin Shaman murmurs under their breath; as they do this the opponents are engufled in a pale green mist, which quickly dissipates, and " << healed << " of the opponents seem rejuvinated." << std::endl;
                 }
             }
-        },
+        }, // 0
         NPCTemplate {
             "Goblin Grunt",
             4,
             6,
             [](GameState& a_gameState, NPCData& a_npc) {
                 std::cout << "The Goblin Grunt swings their club at the player and ";
-                if (DIE_TWENTY_DISTRIBUTION(a_gameState.generator) >= a_gameState.player.armor) {
+                if (DIE_TWENTY_DISTRIBUTION(a_gameState.generator) >= a_gameState.player.GetEffectiveArmor()) {
                     int32_t damage = DIE_FOUR_DISTRIBUTION(a_gameState.generator);
                     a_gameState.player.Hurt(damage);
                     std::cout << "hits, dealing " << damage << " damage." << std::endl;
@@ -2380,7 +2553,72 @@ int main(int argc, char** argv) {
                     std::cout << "misses." << std::endl;
                 }
             }
-        },
+        }, // 1
+        NPCTemplate {
+            "Goblin Squire",
+            6,
+            6,
+            [](GameState& a_gameState, NPCData& a_npc) {
+                std::cout << "The Goblin Squire swings their shortsword at the player and ";
+                int32_t modifier = 
+                    a_npc.GetSkillModifier("Martial Combat") +
+                    a_npc.GetSkillModifier("Swordsmanship");
+                if (DIE_TWENTY_DISTRIBUTION(a_gameState.generator) + modifier >= a_gameState.player.GetEffectiveArmor()) {
+                    int32_t damage = DIE_SIX_DISTRIBUTION(a_gameState.generator) + modifier * 0.5;
+                    a_gameState.player.Hurt(damage);
+                    std::cout << "hits, dealing " << damage << " damage." << std::endl;
+                } else {
+                    std::cout << "misses." << std::endl;
+                }
+            }
+        }, // 2
+        NPCTemplate {
+            "Goblin Priest",
+            15,
+            10,
+            [](GameState& a_gameState, NPCData& a_npc) {
+                size_t healed = 0;
+                if (a_npc.curMana > 10 && DIE_TWO_DISTRIBUTION(a_gameState.generator) == 1) {
+                    for (NPCData& npc : a_gameState.rooms[a_gameState.curRoom].inhabitants) {
+                        if (npc.curHP < npc.maxHP) {
+                            npc.Heal(DIE_THREE_DISTRIBUTION(a_gameState.generator) + DIE_THREE_DISTRIBUTION(a_gameState.generator) + DIE_THREE_DISTRIBUTION(a_gameState.generator));
+                            ++healed;
+                        }
+                    }
+                }
+
+                if (healed == 0) {
+                    int32_t roll = DIE_TWENTY_DISTRIBUTION(a_gameState.generator);
+                    int32_t modifier = 0;
+                    if (a_npc.curMana > 5 && DIE_THREE_DISTRIBUTION(a_gameState.generator) == 1) {
+                        std::cout << "The Goblin Priest raises their arms in prayer and a swarm of pebbles sling towards the player and they ";
+                        modifier += a_npc.GetSkillModifier("Geomancy");
+                        a_npc.DrainMana(5);
+                        if (roll + modifier >= a_gameState.player.GetEffectiveArmor()) {
+                            int32_t damage = DIE_FOUR_DISTRIBUTION(a_gameState.generator) + DIE_FOUR_DISTRIBUTION(a_gameState.generator);
+                            a_gameState.player.Hurt(damage);
+                            std::cout << "hit, dealing " << damage << " damage." << std::endl;
+                        } else {
+                            std::cout << "miss." << std::endl;
+                        }
+                    } else {
+                        std::cout << "The Goblin Priest swings their staff at the player and ";
+                        modifier += a_npc.GetSkillModifier("Martial Combat");
+                        if (roll + modifier >= a_gameState.player.GetEffectiveArmor()) {
+                            int32_t damage = 2 + DIE_FOUR_DISTRIBUTION(a_gameState.generator);
+                            a_gameState.player.Hurt(damage);
+                            std::cout << "hits, dealing " << damage << " damage." << std::endl;
+                        } else {
+                            std::cout << "misses." << std::endl;
+                        }
+                    }
+                } else {
+                    a_npc.manaSickness += 1;
+                    a_npc.DrainMana(10);
+                    std::cout << "The Goblin Priest murmurs under their breath; as they do this the opponents are engufled in a pale green mist, which quickly dissipates, and " << healed << " of the opponents seem rejuvinated." << std::endl;
+                }
+            }
+        }, // 3
     };
 
     const std::array<RoomData, 6> ROOM_DATA = {
@@ -2436,10 +2674,46 @@ int main(int argc, char** argv) {
                 a_npc.manaRegen += 7;
                 return a_npc;
             }
-        }
+        },
+        {
+            "Squire", [](NPCData a_npc){
+                a_npc.maxHP += 8;
+                a_npc.curHP += 8;
+                a_npc.armor += 2;
+                a_npc.AddSkillModifier("Martial Combat", 1);
+                a_npc.AddSkillModifier("Swordsmanship" , 1);
+                return a_npc;
+            }
+        },
+        {
+            "Priest", [](NPCData a_npc){
+                a_npc.maxHP += 6;
+                a_npc.curHP += 6;
+                a_npc.maxMana += 35;
+                a_npc.curMana += 35;
+                a_npc.manaRegen += 10;
+                a_npc.AddSkillModifier("Martial Combat", 1);
+                a_npc.AddSkillModifier("Geomancy", 1);
+                return a_npc;
+            }
+        },
+        {
+            "Elder", [](NPCData a_npc){
+                a_npc.name = "Elder " + a_npc.name;
+                a_npc.maxHP += a_npc.maxHP * 0.5;
+                a_npc.curHP += a_npc.curHP * 0.5;
+                a_npc.maxMana += a_npc.maxMana * 0.5;
+                a_npc.curMana += a_npc.curMana * 0.5;
+                a_npc.manaRegen += 5;
+                for (const std::pair<std::string, int32_t>& skillPair : a_npc.skills) {
+                    a_npc.AddSkillModifier(skillPair.first, 1);
+                }
+                return a_npc;
+            }
+        },
     };
 
-    const std::array<Encounter, 7> ENCOUNTERS = {
+    const std::array<Encounter, 10> ENCOUNTERS = {
         Encounter {
             [](GameState& a_gameState) { return a_gameState.curRoom <= 0 ? 1 : 0; },
             nullptr
@@ -2522,6 +2796,28 @@ int main(int argc, char** argv) {
             }
         },
         Encounter {
+            [](GameState& a_gameState) { return a_gameState.curRoom > 15 ? 4 : 0; },
+            [&ENTITY_TEMPLATES, &NPC_TEMPLATES, &NPC_MODIFIERS](GameState& a_gameState) {
+                a_gameState.rooms[a_gameState.curRoom].inhabitants.push_back(
+                    NPC_MODIFIERS.at("Squire")(
+                        NPCData(&ENTITY_TEMPLATES[0], &NPC_TEMPLATES[2])
+                    )
+                );
+                a_gameState.rooms[a_gameState.curRoom].inhabitants.push_back(
+                    NPC_MODIFIERS.at("Shaman")(
+                        NPCData(&ENTITY_TEMPLATES[0], &NPC_TEMPLATES[0])
+                    )
+                );
+                a_gameState.rooms[a_gameState.curRoom].roomActions.push_back(
+                    RoomActionReference {
+                        ROOM_ACTIONS.at("Treasure Trove")
+                    }
+                );
+                a_gameState.rooms[a_gameState.curRoom].flags.emplace("TreasureTrove_Count", 2);
+                a_gameState.rooms[a_gameState.curRoom].flags.emplace("TreasureTrove_Dice", 20);
+            }
+        },
+        Encounter {
             [](GameState& a_gameState) { return a_gameState.curRoom > 0 ? 2 : 0; },
             [](GameState& a_gameState) {
                 switch (DIE_THREE_DISTRIBUTION(a_gameState.generator)) {
@@ -2584,6 +2880,7 @@ int main(int argc, char** argv) {
                                                     std::cout << "You do not have enough gold." << std::endl;
                                                 }
                                             }
+                                            option = 0;
                                             break;
                                         case 2:
                                             std::cout << "They do not wish to buy anything from you..." << std::endl;
@@ -2594,6 +2891,57 @@ int main(int argc, char** argv) {
                         }
                     }
                 );
+            }
+        },
+        Encounter {
+            [](GameState& a_gameState) { return a_gameState.curRoom > 20 ? 3 : 0; },
+            [&ENTITY_TEMPLATES, &NPC_TEMPLATES, &NPC_MODIFIERS](GameState& a_gameState) {
+                a_gameState.rooms[a_gameState.curRoom].inhabitants.push_back(
+                    NPC_MODIFIERS.at("Squire")(
+                        NPCData(&ENTITY_TEMPLATES[0], &NPC_TEMPLATES[2])
+                    )
+                );
+                a_gameState.rooms[a_gameState.curRoom].inhabitants.push_back(
+                    NPC_MODIFIERS.at("Priest")(
+                        NPCData(&ENTITY_TEMPLATES[0], &NPC_TEMPLATES[3])
+                    )
+                );
+                a_gameState.rooms[a_gameState.curRoom].roomActions.push_back(
+                    RoomActionReference {
+                        ROOM_ACTIONS.at("Treasure Trove")
+                    }
+                );
+                a_gameState.rooms[a_gameState.curRoom].flags.emplace("TreasureTrove_Count", 4);
+                a_gameState.rooms[a_gameState.curRoom].flags.emplace("TreasureTrove_Dice", 12);
+            }
+        },
+        Encounter {
+            [](GameState& a_gameState) { return a_gameState.curRoom > 30 ? std::min<uint32_t>(7, a_gameState.curRoom * 0.1) : 0; },
+            [&ENTITY_TEMPLATES, &NPC_TEMPLATES, &NPC_MODIFIERS](GameState& a_gameState) {
+                a_gameState.rooms[a_gameState.curRoom].inhabitants.push_back(
+                    NPC_MODIFIERS.at("Squire")(
+                        NPCData(&ENTITY_TEMPLATES[0], &NPC_TEMPLATES[2])
+                    )
+                );
+                a_gameState.rooms[a_gameState.curRoom].inhabitants.push_back(
+                    NPC_MODIFIERS.at("Squire")(
+                        NPCData(&ENTITY_TEMPLATES[0], &NPC_TEMPLATES[2])
+                    )
+                );
+                a_gameState.rooms[a_gameState.curRoom].inhabitants.push_back(
+                    NPC_MODIFIERS.at("Elder")(
+                        NPC_MODIFIERS.at("Priest")(
+                            NPCData(&ENTITY_TEMPLATES[0], &NPC_TEMPLATES[3])
+                        )
+                    )
+                );
+                a_gameState.rooms[a_gameState.curRoom].roomActions.push_back(
+                    RoomActionReference {
+                        ROOM_ACTIONS.at("Treasure Trove")
+                    }
+                );
+                a_gameState.rooms[a_gameState.curRoom].flags.emplace("TreasureTrove_Count", 4);
+                a_gameState.rooms[a_gameState.curRoom].flags.emplace("TreasureTrove_Dice", 16);
             }
         },
     };
@@ -2830,7 +3178,7 @@ int main(int argc, char** argv) {
                         room = &gameState.rooms[gameState.curRoom];
                         std::cout << "-------------------------------\nRooms:\n";
                         for (size_t connectionIndex = 0; connectionIndex < room->connections.size();) {
-                            std::cout << ++connectionIndex << ") " << ROOM_DATA[gameState.rooms[room->connections[connectionIndex - 1].destination].roomID].roomName << "[" << room->connections[connectionIndex - 1].destination << "]\n";
+                            std::cout << ++connectionIndex << ") [" << room->connections[connectionIndex - 1].destination  << "] \x1b[38;5;" << (gameState.rooms[room->connections[connectionIndex - 1].destination].initialized ? "8m" : "15m") << ROOM_DATA[gameState.rooms[room->connections[connectionIndex - 1].destination].roomID].roomName << "\x1b[39m\n";
                         }
                         std::cout << "\nOption: ";
 
@@ -2869,7 +3217,13 @@ int main(int argc, char** argv) {
                             << gameState.player.curHP << "/" << gameState.player.maxHP 
                             << "\nMana: " 
                             << gameState.player.curMana << "/" << gameState.player.maxMana 
-                            << "\nXP: "
+                            << "\nArmor: "
+                            << gameState.player.GetEffectiveArmor()
+                            << " ("
+                            << gameState.player.armor
+                            << " + "
+                            << (gameState.player.GetEffectiveArmor() - gameState.player.armor)
+                            << ")\nXP: "
                             << gameState.player.xp
                             << "\nGold: "
                             << gameState.player.gold
@@ -2958,7 +3312,11 @@ int main(int argc, char** argv) {
                             size_t itemIndex = choice;
                             ItemStack& itemStack = gameState.player.items[itemIndex];
                             const ItemData& itemType = ITEM_DATA[itemStack.itemID];
-                            std::cout << "-------------------------------\n" << itemType.name << " x" << itemStack.stackSize << "/" << itemType.maxStack << "\n- " << itemType.description << "\nEquipped [" << (gameState.player.equipped[itemIndex] ? 'X' : ' ') << "]\n\n1) Use\n2) " << (gameState.player.equipped[itemIndex] ? "Unequip" : "Equip") << "\n3) Back\n\nOption: ";
+                            std::cout << "-------------------------------\n" << itemType.name << " x" << itemStack.stackSize << "/" << itemType.maxStack << "\n- " << itemType.description << "\nEquipped [" << (gameState.player.equipped[itemIndex] ? 'X' : ' ') << "]\n";
+                            for (const std::pair<std::string, int32_t>& modPair : itemStack.metadata) {
+                                std::cout << "- " << modPair.first << ": " << modPair.second << "\n";
+                            }
+                            std::cout << "\n1) Use\n2) " << (gameState.player.equipped[itemIndex] ? "Unequip" : "Equip") << "\n3) Back\n\nOption: ";
                             SafeInput<uint32_t>(choice);
                             switch (choice) {
                                 case 1:
@@ -3001,7 +3359,7 @@ int main(int argc, char** argv) {
                                     std::cout << "- Mana [" << room->inhabitants[npcIndex].curMana << "/" << room->inhabitants[npcIndex].maxMana << "]\n";
                                 }
                             }
-                            std::cout << "-------------------------------\nActions:\n";
+                            std::cout << "\n\nTurns: " << gameState.player.usedTurns << "/" << gameState.player.turns << "\n-------------------------------\nActions:\n";
                             for (size_t i = 0; i < gameState.player.actions.size(); ++i) {
                                 std::cout << (i + 1) << ") " << gameState.player.actions[i].name << "\n";
                             }
