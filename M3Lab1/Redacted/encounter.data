@@ -26,7 +26,7 @@ if (a_gameState.player.curMana == a_gameState.player.maxMana) {
 {
     if (player.maxMana <= 0) {
         if (player.HasPerk(ARCANE_EYES)) {
-            console.Print("There is a mana fountain in the area, but you can't benefit from it.\n");
+            console.Print("There is a mana fountain in the area<comma> but you can't benefit from it.\n");
         } else {
             console.Print("Nothing of interest can be found in the room.\n");
         } end;
@@ -36,9 +36,9 @@ if (a_gameState.player.curMana == a_gameState.player.maxMana) {
     console.Print("A mana fountain is in the area, ");
 
     if (player.curMana == player.maxMana) {
-        console.Print("however, you are already at your maximum.\n");
+        console.Print("however<comma> you are already at your maximum.\n");
     } elif (player.curMana > player.maxMana) {
-        console.Print("however, due to you being overloaded with mana, you take 5 damage.\n");
+        console.Print("however<comma> due to you being overloaded with mana, you take 5 damage.\n");
         player.Hurt(5);
     } else {
         manaGain<uint32> = math.Min(player.maxMana - player.curMana, 25);
@@ -53,8 +53,14 @@ if (a_gameState.player.curMana == a_gameState.player.maxMana) {
 
 {
     if (player.HasPerk(ARCANE_EYES)) {
-        console.Print("There is a mana fountain in the area, but you can't benefit from it.\n");
+        console.Print("There is a mana fountain in the area<comma> but you can't benefit from it.\n");
     } else {
         console.Print("Nothing of interest can be found in the room.\n");
     } end;
 }
+
+{
+    manaGain<uint32> = math.Min(player.maxMana - player.curMana, 25);
+    console.Print("you have regained {uint32@manaGain@} mana.\n");
+}
+
