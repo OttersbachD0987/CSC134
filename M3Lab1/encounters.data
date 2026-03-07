@@ -213,4 +213,28 @@ CONTINUE;
     end;
 }}
 
+CONTINUE;
+
+{{
+    if (gameState.curRoom > 35) {
+        if (player.maxHP > 200) {
+            return mathi.Min(5, gameState.curRoom / 20);
+        } else {
+            return mathi.Min(3, gameState.curRoom / 25);
+        } end;
+    } else {
+        return 0;
+    } end;
+}}
+
+{{
+    room.AddInhabitant("Goblin", "Goblin Squire", "Squire");
+    room.AddInhabitant("Goblin", "Goblin Squire", "Squire");
+    room.AddInhabitant("Goblin", "Goblin Priest", "Priest:Elder");
+    room.AddRoomAction("Treasure Trove");
+    room.SetFlag("TreasureTrove_Count", 4);
+    room.SetFlag("TreasureTrove_Dice", 16);
+    end;
+}}
+
 FINAL;

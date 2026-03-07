@@ -1,7 +1,7 @@
 // CSC 134
 // M3LAB1
 // Daley Ottersbach
-// 2/11/2026
+// 3/6/2026
 
 #define __STDC_WANT_LIB_EXT1__ 1
 #include <cstring>
@@ -22,14 +22,19 @@
 #include <filesystem>
 #include <optional>
 
-
+#pragma region Debug Flags
 //#define SCRIPT_PARSER_DEBUG_LOGGING 1
 //#define STRING_UTILS_DEBUG_LOGGING 1
+#pragma endregion
 
-
+#pragma region Compilation Flags
 //#define LEGACY_COMMA_REPLACEMENT 1
+#pragma endregion
 
 #pragma region Input Utilities
+/// @brief Get a validated input.
+/// @tparam T An integral type.
+/// @param a_value The value to feed into. 
 template<std::integral T>
 void SafeInput(T& a_value) {
     while (!(std::cin >> a_value)) {
@@ -40,8 +45,24 @@ void SafeInput(T& a_value) {
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); 
 }
 
+/// @brief Get a validated input.
+/// @tparam T A floating point type.
+/// @param a_value The value to feed into.
+template<std::floating_point T>
+void SafeInput(T& a_value) {
+    while (!(std::cin >> a_value)) {
+        std::cout << "INVALID INPUT" << std::endl;
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); 
+    }
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); 
+}
+
+/// @brief Get a validated input.
+/// @tparam T The type to get.
+/// @param a_value The value to feed into.
 template<typename T>
-requires(!std::integral<T>)
+requires(!std::integral<T> && !std::floating_point<T>)
 void SafeInput(T& a_value) {
     while (!(std::cin >> a_value)) {
         std::cout << "INVALID INPUT" << std::endl;
@@ -50,6 +71,7 @@ void SafeInput(T& a_value) {
     }
 }
 
+/// @brief Eat one input on the same line, works like sys("pause") on windows.
 inline void EatInput() {
     std::cout << "Press any key to continue..." << std::flush;
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); 
@@ -58,10 +80,18 @@ inline void EatInput() {
 #pragma endregion
 
 #pragma region String Utils
+/// @brief Tell if a string is a boolean value.
+/// @param a_string The string to check.
+/// @return Whether or not the string is a boolean value.
+/// @note Assumes the boolean value is lowercase.
 bool IsStringBool(std::string_view a_string) {
     return a_string == "true" || a_string == "false";
 }
 
+/// @brief Tell if a string is a floating point value.
+/// @param a_string The string to check.
+/// @return Whether or not the string is a floating point value.
+/// @note All integer values will be valid floating point values.
 bool IsStringFloat(std::string_view a_string) {
     bool poppedDot = false;
     for (size_t i = (a_string.starts_with('-') ? 1 : 0); i < a_string.size(); ++i) {
@@ -89,6 +119,9 @@ bool IsStringFloat(std::string_view a_string) {
     return true;
 }
 
+/// @brief Tell if a string is an integer value.
+/// @param a_string The string to check.
+/// @return Whether or not the string is an integer value.
 bool IsStringInt(std::string_view a_string) {
     for (size_t i = (a_string.starts_with('-') ? 1 : 0); i < a_string.size(); ++i) {
         switch (a_string[i]) {
@@ -327,6 +360,7 @@ public:
 };
 */
 
+#pragma region Forward Definitions
 struct EntityData;
 struct GameState;
 struct ItemData;
@@ -338,6 +372,7 @@ struct RoomInstance;
 struct ConnectionInstance;
 struct ShopInstance;
 struct Interpreter;
+#pragma endregion
 
 /// @struct Action
 /// @brief Holds the data for an action.
@@ -490,6 +525,8 @@ public:
     virtual ~EntityData() {}
 };
 
+/// @struct ItemUsage
+/// @brief A holder class for an item's usage.
 struct ItemUsage {
 public:
     std::string name = "";
@@ -693,12 +730,16 @@ public:
     std::vector<std::function<void(GameState&, PlayerData&, bool)>> levelUpEffects;
 };
 
+/// @struct Class
+/// @brief A class for the player, holds the individual levels in an organized format.
 struct Class {
 public:
-    std::string name;
-    std::string description;
-    std::vector<ClassLevel> levels;
+    std::string name;               //< The name of the class.
+    std::string description;        //< The description of the class.
+    std::vector<ClassLevel> levels; //< The levels of the class.
 
+    /// @brief Get the max level of the class.
+    /// @return The max level of the class.
     uint32_t MaxLevel(void) {
         return levels.size();
     }
@@ -849,6 +890,8 @@ public:
     }
 };
 
+/// @struct NPCTemplate
+/// @brief A template holding the outline for an NPC instance.
 struct NPCTemplate {
 public:
     std::string name = "";
@@ -1652,10 +1695,12 @@ public:
 };
 #pragma endregion
 
+/// @struct DebugData
+/// @brief A struct containing all the debug data for the player.
 struct DebugData {
 public:
-    bool enabled = false;
-    bool noFights = false;
+    bool enabled = false;  //< If the debug mode is enabled.
+    bool noFights = false; //< The No Fights debug flag to avoid starting the combat menu.
 };
 
 struct GameState {
@@ -3361,9 +3406,137 @@ const std::unordered_map<std::string, RoomAction> ROOM_ACTIONS = {
     }
 };
 
-const std::unordered_map<std::string, EntityTemplate> ENTITY_TEMPLATES = {
-    {"Goblin", EntityTemplate(32, 0, 0, 6, {}, {})}
+std::unordered_map<std::string, EntityTemplate> ENTITY_TEMPLATES = {
+    //{"Goblin", EntityTemplate(32, 0, 0, 6, {}, {})}
 };
+
+std::unordered_map<std::string, EntityTemplate> LoadEntityData(std::filesystem::path a_path) {
+    std::unordered_map<std::string, EntityTemplate> loadedEntities = std::unordered_map<std::string, EntityTemplate>();
+    std::ifstream reader = std::ifstream(a_path);
+    char buffer[256];
+    std::string stringStorage;
+    int32_t intStorage;
+    std::string name;
+    
+    // ENTITY TEMPLATE
+    int32_t hp;
+    int32_t mana;
+    int32_t manaRegen;
+    int32_t armor;
+    std::unordered_map<std::string, int32_t> skills = std::unordered_map<std::string, int32_t>();
+    std::vector<Action> actions = std::vector<Action>();
+    // ENTITY TEMPLATE
+
+    uint32_t step = 0;
+    uint32_t mode = 0;
+
+    bool running = true;
+
+    while (running) {
+        switch (mode) {
+            case 0:
+                reader.getline(buffer, 256);
+                break;
+            case 1:
+                reader.getline(buffer, 256, ',');
+                break;
+            case 2:
+                reader.getline(buffer, 256, ';');
+                break;
+            case 3:
+                reader.getline(buffer, 256, ':');
+                break;
+            case 4:
+                reader.getline(buffer, 256, 'x');
+                break;
+        }
+        //std::cout << std::string(buffer) << std::endl;
+        //std::cout << "S & M : " << step << ", " << mode << std::endl;
+        switch (step) {
+            case 0:
+                name = buffer;
+                mode = 2;
+                ++step;
+                reader.getline(buffer, 256);
+                break;
+            case 1:
+                hp = std::stoi(buffer);
+                mode = 2;
+                ++step;
+                break;
+            case 2:
+                mana = std::stoi(buffer);
+                mode = 2;
+                ++step;
+                break;
+            case 3:
+                manaRegen = std::stoi(buffer);
+                mode = 2;
+                ++step;
+                break;
+            case 4:
+                armor = std::stoi(buffer);
+                mode = 3;
+                ++step;
+                reader.getline(buffer, 256);
+                reader.getline(buffer, 256);
+                break;
+            case 5:
+                if (mode == 3) {
+                    stringStorage = buffer;
+                    if (stringStorage == "END") {
+                        mode = 1;
+                        ++step;
+                        reader.getline(buffer, 256);
+                        reader.getline(buffer, 256);
+                    } else {
+                        mode = 1;
+                    }
+                } else if (mode == 1) {
+                    skills.insert(std::pair(stringStorage, std::stoi(buffer)));
+                    mode = 3;
+                    reader.getline(buffer, 256);
+                } else {
+                    std::cout << "ERROR: mode{" << mode << "} IS NOT VALID" << std::endl;
+                    running = false;
+                }
+                break;
+            case 6:
+                stringStorage = buffer;
+                if (stringStorage == "END") {
+                    mode = 0;
+                    ++step;
+                    reader.getline(buffer, 256);
+                    reader.getline(buffer, 256);
+                } else {
+                    actions.push_back(STANDARD_ACTIONS.at(stringStorage));
+                    mode = 1;
+                    reader.getline(buffer, 256);
+                }
+                break;
+            case 7:
+                stringStorage = buffer;
+                mode = 0;
+                ++step;
+                loadedEntities.emplace(name, EntityTemplate(hp, mana, manaRegen, armor, skills, actions));
+                skills = std::unordered_map<std::string, int32_t>();
+                actions = std::vector<Action>();
+                if (stringStorage == "FINAL") {
+                    //std::cout << "Finished" << std::endl;
+                    running = false;
+                } else {
+                    step = 0;
+                    mode = 0;
+                    reader.getline(buffer, 256);
+                }
+                break;
+        }
+    }
+
+    reader.close();
+    
+    return loadedEntities;
+}
 
 const std::unordered_map<std::string, NPCTemplate> NPC_TEMPLATES = {
     {
@@ -3383,7 +3556,7 @@ const std::unordered_map<std::string, NPCTemplate> NPC_TEMPLATES = {
                 }
 
                 if (healed == 0) {
-                    std::cout << "The Goblin Shaman swings their staff at the player and ";
+                    std::cout << "The " << a_npc.name << " swings their staff at the player and ";
                     if (DIE_TWENTY_DISTRIBUTION(a_gameState.generator) >= a_gameState.player.GetEffectiveArmor()) {
                         int32_t damage = DIE_FOUR_DISTRIBUTION(a_gameState.generator);
                         a_gameState.player.Hurt(damage);
@@ -3394,7 +3567,7 @@ const std::unordered_map<std::string, NPCTemplate> NPC_TEMPLATES = {
                 } else {
                     a_npc.manaSickness += 1;
                     a_npc.DrainMana(10);
-                    std::cout << "The Goblin Shaman murmurs under their breath; as they do this the opponents are engufled in a pale green mist, which quickly dissipates, and " << healed << " of the opponents seem rejuvinated." << std::endl;
+                    std::cout << "The " << a_npc.name << " murmurs under their breath; as they do this the opponents are engufled in a pale green mist, which quickly dissipates, and " << healed << " of the opponents seem rejuvinated." << std::endl;
                 }
             }
         }
@@ -3405,7 +3578,7 @@ const std::unordered_map<std::string, NPCTemplate> NPC_TEMPLATES = {
             4,
             6,
             [](GameState& a_gameState, NPCData& a_npc) {
-                std::cout << "The Goblin Grunt swings their club at the player and ";
+                std::cout << "The " << a_npc.name << " swings their club at the player and ";
                 if (DIE_TWENTY_DISTRIBUTION(a_gameState.generator) >= a_gameState.player.GetEffectiveArmor()) {
                     int32_t damage = DIE_FOUR_DISTRIBUTION(a_gameState.generator);
                     a_gameState.player.Hurt(damage);
@@ -3422,7 +3595,7 @@ const std::unordered_map<std::string, NPCTemplate> NPC_TEMPLATES = {
             6,
             6,
             [](GameState& a_gameState, NPCData& a_npc) {
-                std::cout << "The Goblin Squire swings their shortsword at the player and ";
+                std::cout << "The " << a_npc.name << " swings their shortsword at the player and ";
                 int32_t modifier = 
                     a_npc.GetSkillModifier("Martial Combat") +
                     a_npc.GetSkillModifier("Swordsmanship");
@@ -3456,7 +3629,7 @@ const std::unordered_map<std::string, NPCTemplate> NPC_TEMPLATES = {
                     int32_t roll = DIE_TWENTY_DISTRIBUTION(a_gameState.generator);
                     int32_t modifier = 0;
                     if (a_npc.curMana > 5 && DIE_THREE_DISTRIBUTION(a_gameState.generator) == 1) {
-                        std::cout << "The Goblin Priest raises their arms in prayer and a swarm of pebbles sling towards the player and they ";
+                        std::cout << "The " << a_npc.name << " raises their arms in prayer and a swarm of pebbles sling towards the player and they ";
                         modifier += a_npc.GetSkillModifier("Geomancy");
                         a_npc.DrainMana(5);
                         if (roll + modifier >= a_gameState.player.GetEffectiveArmor()) {
@@ -3467,7 +3640,7 @@ const std::unordered_map<std::string, NPCTemplate> NPC_TEMPLATES = {
                             std::cout << "miss." << std::endl;
                         }
                     } else {
-                        std::cout << "The Goblin Priest swings their staff at the player and ";
+                        std::cout << "The " << a_npc.name << " swings their staff at the player and ";
                         modifier += a_npc.GetSkillModifier("Martial Combat");
                         if (roll + modifier >= a_gameState.player.GetEffectiveArmor()) {
                             int32_t damage = 2 + DIE_FOUR_DISTRIBUTION(a_gameState.generator);
@@ -3480,7 +3653,44 @@ const std::unordered_map<std::string, NPCTemplate> NPC_TEMPLATES = {
                 } else {
                     a_npc.manaSickness += 1;
                     a_npc.DrainMana(10);
-                    std::cout << "The Goblin Priest murmurs under their breath; as they do this the opponents are engufled in a pale green mist, which quickly dissipates, and " << healed << " of the opponents seem rejuvinated." << std::endl;
+                    std::cout << "The " << a_npc.name << " murmurs under their breath; as they do this the opponents are engufled in a pale green mist, which quickly dissipates, and " << healed << " of the opponents seem rejuvinated." << std::endl;
+                }
+            }
+        }
+    },
+    {
+        "Reaper", NPCTemplate {
+            "Reaper",
+            20,
+            20,
+            [](GameState& a_gameState, NPCData& a_npc) {
+                size_t healed = 0;
+                size_t amount = 0;
+                if (a_npc.curMana > 10 && DIE_TWO_DISTRIBUTION(a_gameState.generator) == 1) {
+                    for (NPCData& npc : a_gameState.rooms[a_gameState.curRoom].inhabitants) {
+                        if (npc.curHP < npc.maxHP) {
+                            size_t healAmount = a_gameState.RollDice(3, 3);
+                            npc.Heal(healed);
+                            amount += healed;
+                            ++healed;
+                        }
+                    }
+                }
+
+                if (healed > 0) {
+                    a_npc.manaSickness += 1;
+                    a_npc.DrainMana(10);
+                    a_gameState.player.Hurt(amount);
+                    std::cout << "The " << a_npc.name << " silently holds vigil, and " << healed << " stand taller as you feel your life being pulled out of you... You take " << amount <<  " damage." << std::endl;
+                }
+
+                std::cout << "The " << a_npc.name << " swings their scythe at the player and ";
+                if (DIE_TWENTY_DISTRIBUTION(a_gameState.generator) + 4 >= a_gameState.player.GetEffectiveArmor()) {
+                    int32_t damage = a_gameState.RollDice(2, 8) + 3;
+                    a_gameState.player.Hurt(damage);
+                    std::cout << "hits, dealing " << damage << " damage." << std::endl;
+                } else {
+                    std::cout << "misses." << std::endl;
                 }
             }
         }
@@ -5760,6 +5970,10 @@ int main(int argc, char** argv) {
     for (const Encounter& encounter : LoadEncountersData(std::filesystem::current_path().append("encounters.data"))) {
         ENCOUNTERS.push_back(encounter);
     }
+
+    for (const std::pair<std::string, EntityTemplate>& entityTemplate : LoadEntityData(std::filesystem::current_path().append("entities.data"))) {
+        ENTITY_TEMPLATES.emplace(entityTemplate);
+    }
     
     //std::cout << "The answer is: " << (std::pow(29, 452)) << "." << std::endl;
 
@@ -6017,7 +6231,7 @@ int main(int argc, char** argv) {
                             case 444: {
                                 if (gameState.debug.enabled) {
                                     int32_t number = 0;
-                                    std::cout << "\x1b[1mDebug Menu (INFO)\x1b[22m\n1) View Classes\n2) View Encounters\n3) Back\n\nOption: ";
+                                    std::cout << "\x1b[1mDebug Menu (INFO)\x1b[22m\n1) View Classes\n2) View Encounters\n3) View Entity Templates\n4) Back\n\nOption: ";
                                     SafeInput<uint32_t>(choice);
                                     switch (choice) {
                                         case 1:
@@ -6039,6 +6253,19 @@ int main(int argc, char** argv) {
                                             }
                                             break;
                                         case 3:
+                                            for (const std::pair<std::string, EntityTemplate>& entityTemplate : ENTITY_TEMPLATES) {
+                                                std::cout << std::format("Name: {}\nHP: {}\nMana: {}\nMana Regeneration: {}\nArmor: {}\n\nSkills:\n", entityTemplate.first, entityTemplate.second.hp, entityTemplate.second.mana, entityTemplate.second.manaRegen, entityTemplate.second.armor);
+                                                for (const std::pair<std::string, int32_t>& skill : entityTemplate.second.skills) {
+                                                    std::cout << std::format("{}: {}\n", skill.first, skill.second);
+                                                }
+                                                std::cout << "\nActions:\n";
+                                                for (const Action& action : entityTemplate.second.actions) {
+                                                    std::cout << std::format("{}\n", action.name);
+                                                }
+                                                std::cout << std::endl;
+                                            }
+                                            break;
+                                        case 4:
                                             break;
                                     }
                                 }
