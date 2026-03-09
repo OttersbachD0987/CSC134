@@ -230,9 +230,10 @@ CONTINUE;
 {{
     room.AddInhabitant("Goblin", "Goblin Squire", "Squire");
     room.AddInhabitant("Goblin", "Goblin Squire", "Squire");
-    room.AddInhabitant("Goblin", "Goblin Priest", "Priest:Elder");
+    room.AddInhabitant("Goblin", "Goblin Squire", "Squire");
+    room.AddInhabitant("Revenant", "Reaper");
     room.AddRoomAction("Treasure Trove");
-    room.SetFlag("TreasureTrove_Count", 4);
+    room.SetFlag("TreasureTrove_Count", 5);
     room.SetFlag("TreasureTrove_Dice", 16);
     end;
 }}

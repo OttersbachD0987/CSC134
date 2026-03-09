@@ -391,6 +391,8 @@ public:
 /// @brief A template for a base entity.
 struct EntityTemplate {
 public:
+
+    std::string name;                                //< The name of the entity.
     int32_t hp;                                      //< The max HP of the entity.
     int32_t mana;                                    //< The max mana of the entity.
     int32_t manaRegen;                               //< The mana regeneration of the entity.
@@ -400,6 +402,7 @@ public:
 
     /// @brief An entity template with all its values set to the default.
     EntityTemplate(void) {
+        this->name = "";
         this->hp = this->mana = this->manaRegen = this->armor = 0;
         this->skills = std::unordered_map<std::string, int32_t>();
         this->actions = std::vector<Action>();
@@ -407,13 +410,15 @@ public:
 
     /// @brief An entity template with assigned values.
     ///
+    /// @param a_name      The name of the entity.
     /// @param a_hp        The word max HP of the entity.
     /// @param a_mana      The max mana of the entity.
     /// @param a_manaRegen The mana regeneration of the entity.
     /// @param a_armor     The armor of the entity.
     /// @param a_skills    The skills of the entity.
     /// @param a_actions   The actions of the entity.
-    EntityTemplate(int32_t a_hp, int32_t a_mana, int32_t a_manaRegen, int32_t a_armor, const std::unordered_map<std::string, int32_t>& a_skills, const std::vector<Action>& a_actions) {
+    EntityTemplate(std::string_view a_name, int32_t a_hp, int32_t a_mana, int32_t a_manaRegen, int32_t a_armor, const std::unordered_map<std::string, int32_t>& a_skills, const std::vector<Action>& a_actions) {
+        this->name      = a_name;
         this->hp        = a_hp;
         this->mana      = a_mana;
         this->manaRegen = a_manaRegen;
@@ -442,6 +447,7 @@ namespace {
 
 struct EntityData {
 public:
+    std::string name;                                //< The name of the entity.
     int32_t  maxHP;                                  //< The max HP of the entity.
     int32_t  curHP;                                  //< The current HP of the entity.
     uint32_t maxMana;                                //< The max mana of the entity.
@@ -454,12 +460,14 @@ public:
     std::unordered_map<std::string, TimedEffect> timedEffects = std::unordered_map<std::string, TimedEffect>();
 
     EntityData(void) {
+        this->name = "";
         this->maxHP = this->curHP = this->maxMana = this->curMana = this->manaRegen = this->manaSickness = this->armor = 0;
         this->skills = std::unordered_map<std::string, int32_t>();
         this->actions = std::vector<Action>();
     }
 
     EntityData(const EntityTemplate* const a_entityTemplate) {
+        this->name = a_entityTemplate->name;
         this->maxHP = this->curHP = a_entityTemplate->hp;
         this->maxMana = this->curMana = a_entityTemplate->mana;
         this->manaRegen = a_entityTemplate->manaRegen;
@@ -894,7 +902,6 @@ public:
 /// @brief A template holding the outline for an NPC instance.
 struct NPCTemplate {
 public:
-    std::string name = "";
     int32_t xp = 0;
     int32_t gold = 0;
     std::function<void(GameState&, NPCData&)> ai = nullptr;
@@ -902,7 +909,6 @@ public:
 
 struct NPCData : public EntityData {
 public:
-    std::string name;
     int32_t xp;
     int32_t gold;
     const std::function<void(GameState&, NPCData&)>* aiFunction;
@@ -917,7 +923,6 @@ public:
     }
 
     NPCData(const EntityTemplate* const a_entityTemplate, const NPCTemplate* const a_npcTemplate) : EntityData(a_entityTemplate) {
-        this->name = a_npcTemplate->name;
         this->xp = a_npcTemplate->xp;
         this->gold = a_npcTemplate->gold;
         this->aiFunction = &a_npcTemplate->ai;
@@ -1730,7 +1735,7 @@ public:
         this->usedRooms = 0;
         this->curRoom = 0;
         this->rooms = std::vector<RoomInstance>();
-        EntityTemplate temp = EntityTemplate(100, 30, 5, 10, {}, {
+        EntityTemplate temp = EntityTemplate("Player", 100, 30, 5, 10, {}, {
             Action {
                 "Example",
                 [](GameState& a_gameState, EntityData* a_caster, EntityData* a_target) { return true; },
@@ -1796,12 +1801,16 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
                 return a_target != a_caster && a_target->curHP > 0; 
             },
             [](GameState& a_gameState, EntityData* a_caster, EntityData* a_target) {
-                std::cout << "The player throws a punch ";
+                std::cout << "The " << a_caster->name << " throws a punch ";
                 int32_t modifier = 
                     a_caster->GetSkillModifier("Martial Combat") +
                     a_caster->GetSkillModifier("Unarmed Combat") +
                     a_caster->GetSkillModifier("Brawling");
-                size_t opponents = a_gameState.rooms[a_gameState.curRoom].LivingInhabitants();
+                size_t opponents = 1;
+                PlayerData* player = dynamic_cast<PlayerData*>(a_caster);
+                if (player != nullptr) {
+                    opponents = a_gameState.rooms[a_gameState.curRoom].LivingInhabitants();
+                }
                 if (opponents > 1) {
                     modifier += a_caster->GetSkillModifier("Melee Combat");
                 }
@@ -1811,7 +1820,6 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
                     int32_t damage = 0;
                     int32_t damageModifier = modifier * 0.5;
                     int32_t damageTier = 1;
-                    PlayerData* player = dynamic_cast<PlayerData*>(a_caster);
                     if (player != nullptr) {
                         if (player->perks.test((size_t)Perks::HARD_HITTER)) {
                             damageTier += 1;
@@ -1894,7 +1902,7 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
                 ItemStack& itemStack = a_gameState.player.items[a_gameState.player.HasMatchingEquippedItem(a_gameState, [](GameState& a_gameState, const ItemStack& a_itemStack) { return ITEM_DATA[a_itemStack.itemID].tags.contains("Blade"); }).value()];
                 const ItemData& itemType = ITEM_DATA[itemStack.itemID];
                 BladeType bladeType = (BladeType)itemType.tags.at("Blade");
-                std::cout << "The player swings their " << itemType.name << " ";
+                std::cout << "The " << a_caster->name << " swings their " << itemType.name << " ";
                 int32_t modifier = 
                     a_caster->GetSkillModifier("Martial Combat") +
                     itemStack.GetMetadata("ToHit", 0);
@@ -1904,7 +1912,11 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
                         modifier += a_caster->GetSkillModifier("Swordsmanship");
                         break;
                 }
-                size_t opponents = a_gameState.rooms[a_gameState.curRoom].LivingInhabitants();
+                PlayerData* player = dynamic_cast<PlayerData*>(a_caster);
+                size_t opponents = 1;
+                if (player != nullptr) {
+                    opponents = a_gameState.rooms[a_gameState.curRoom].LivingInhabitants();
+                }
                 if (opponents == 1) {
                     modifier += a_caster->GetSkillModifier("Dueling");
                 } else {
@@ -1922,7 +1934,6 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
                     int32_t damage = 0;
                     int32_t damageModifier = modifier * 0.5;
                     int32_t damageTier = 1;
-                    PlayerData* player = dynamic_cast<PlayerData*>(a_caster);
                     if (player != nullptr) {
                         if (opponents > 3 && player->perks.test((size_t)Perks::HORDE_SLAYER)) {
                             damageTier += 1;
@@ -2043,11 +2054,8 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
 
                 EatInput();
 
-                if (a_gameState.rooms[a_gameState.curRoom].LivingInhabitants() <= 1 || a_target->curHP > 0 || DIE_THREE_DISTRIBUTION(a_gameState.generator) != 1) {
-                    PlayerData* player = dynamic_cast<PlayerData*>(a_caster);
-                    if (player != nullptr) {
-                        ++player->usedTurns;
-                    }
+                if (player != nullptr && a_gameState.rooms[a_gameState.curRoom].LivingInhabitants() <= 1 || a_target->curHP > 0 || DIE_THREE_DISTRIBUTION(a_gameState.generator) != 1) {
+                    ++player->usedTurns;
                 }
             }
         }
@@ -2059,17 +2067,22 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
                 return a_target != a_caster && a_target->curHP > 0 && a_caster->curMana > 15; 
             },
             [](GameState& a_gameState, EntityData* a_caster, EntityData* a_target) {
-                std::cout << "The player murmers a cursed incantation ";
+                std::cout << "The " << a_caster->name << " murmers a cursed incantation ";
                 int32_t modifier = 
                     a_caster->GetSkillModifier("Persuasion") + 
                     a_caster->GetSkillModifier("Knowledge of Death") + 
                     a_caster->GetSkillModifier("Necromancy");
-                for (size_t i = 0; i < a_gameState.player.items.size(); ++i) { 
-                    if (a_gameState.player.equipped[i] && ITEM_DATA[a_gameState.player.items[i].itemID].tags.contains("Necromantic Focus")) {
-                        modifier += ITEM_DATA[a_gameState.player.items[i].itemID].tags.at("Necromantic Focus");
+                PlayerData* player = dynamic_cast<PlayerData*>(a_caster);
+                size_t opponents = 1;
+                if (player != nullptr) {
+                    for (size_t i = 0; i < a_gameState.player.items.size(); ++i) { 
+                        if (a_gameState.player.equipped[i] && ITEM_DATA[a_gameState.player.items[i].itemID].tags.contains("Necromantic Focus")) {
+                            modifier += ITEM_DATA[a_gameState.player.items[i].itemID].tags.at("Necromantic Focus");
+                        }
                     }
+
+                    opponents = a_gameState.rooms[a_gameState.curRoom].LivingInhabitants();
                 }
-                size_t opponents = a_gameState.rooms[a_gameState.curRoom].LivingInhabitants();
                 int32_t roll = DIE_TWENTY_DISTRIBUTION(a_gameState.generator);
                 int32_t result = roll + modifier;
                 if (roll == 20 || result >= a_target->GetEffectiveArmor()) {
@@ -2089,28 +2102,56 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
                     std::cout << ").\n" << std::endl;
                     EatInput();
 
-                    for (size_t i = 0; i < a_gameState.rooms[a_gameState.curRoom].inhabitants.size(); ++i) {
-                        if (a_gameState.rooms[a_gameState.curRoom].inhabitants[i].curHP > 0) {
-                            std::cout << "The " << a_gameState.rooms[a_gameState.curRoom].inhabitants[i].name << " twitches, and then ";
+                    if (player != nullptr) {
+                        for (size_t i = 0; i < a_gameState.rooms[a_gameState.curRoom].inhabitants.size(); ++i) {
+                            if (a_gameState.rooms[a_gameState.curRoom].inhabitants[i].curHP > 0) {
+                                std::cout << "The " << a_gameState.rooms[a_gameState.curRoom].inhabitants[i].name << " twitches, and then ";
+                                switch (DIE_THREE_DISTRIBUTION(a_gameState.generator)) {
+                                    case 1:
+                                        a_gameState.rooms[a_gameState.curRoom].inhabitants[i].Hurt(a_gameState.rooms[a_gameState.curRoom].inhabitants[i].curHP * 0.5);
+                                        std::cout << "experiences a violent shudder, their muscles contracting and flailing with seemingly unatural origin." << std::endl;
+                                        break;
+                                    case 2:
+                                    case 3:
+                                        std::cout << "locks up completely, color itself draining from the area around them." << std::endl;
+                                        a_gameState.rooms[a_gameState.curRoom].inhabitants[i].stunned = true;
+                                        break;
+                                }
+                            } else {
+                                std::cout << "The corpse of the " << a_gameState.rooms[a_gameState.curRoom].inhabitants[i].name << " twitches, and the player feels a surge of ";
+                                if (a_caster->curHP < a_caster->maxHP) {
+                                    std::cout << "life rush into them." << std::endl;
+                                    a_caster->Heal(a_gameState.rooms[a_gameState.curRoom].inhabitants[i].maxHP * 0.15);
+                                } else if (a_caster->curMana < a_caster->maxMana) {
+                                    std::cout << "mana rush into them." << std::endl;
+                                    a_caster->RegainMana(a_gameState.rooms[a_gameState.curRoom].inhabitants[i].maxHP * 0.15);
+                                }
+                            }
+
+                            EatInput();
+                        }
+                    } else {
+                        if (a_gameState.player.curHP > 0) {
+                            std::cout << "The " << a_gameState.player.name << " twitches, and then ";
                             switch (DIE_THREE_DISTRIBUTION(a_gameState.generator)) {
                                 case 1:
-                                    a_gameState.rooms[a_gameState.curRoom].inhabitants[i].Hurt(a_gameState.rooms[a_gameState.curRoom].inhabitants[i].curHP * 0.5);
+                                    a_gameState.player.Hurt(a_gameState.player.curHP * 0.5);
                                     std::cout << "experiences a violent shudder, their muscles contracting and flailing with seemingly unatural origin." << std::endl;
                                     break;
                                 case 2:
                                 case 3:
                                     std::cout << "locks up completely, color itself draining from the area around them." << std::endl;
-                                    a_gameState.rooms[a_gameState.curRoom].inhabitants[i].stunned = true;
+                                    a_gameState.player.usedTurns += 1;
                                     break;
                             }
                         } else {
-                            std::cout << "The corpse of the " << a_gameState.rooms[a_gameState.curRoom].inhabitants[i].name << " twitches, and the player feels a surge of ";
+                            std::cout << "The corpse of the " << a_gameState.player.name << " twitches, and the player feels a surge of ";
                             if (a_caster->curHP < a_caster->maxHP) {
                                 std::cout << "life rush into them." << std::endl;
-                                a_caster->Heal(a_gameState.rooms[a_gameState.curRoom].inhabitants[i].maxHP * 0.15);
+                                a_caster->Heal(a_gameState.player.maxHP * 0.15);
                             } else if (a_caster->curMana < a_caster->maxMana) {
                                 std::cout << "mana rush into them." << std::endl;
-                                a_caster->RegainMana(a_gameState.rooms[a_gameState.curRoom].inhabitants[i].maxHP * 0.15);
+                                a_caster->RegainMana(a_gameState.player.maxHP * 0.15);
                             }
                         }
 
@@ -2121,7 +2162,6 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
                     EatInput();
                 }
 
-                PlayerData* player = dynamic_cast<PlayerData*>(a_caster);
                 if (player != nullptr) {
                     ++player->usedTurns;
                 }
@@ -2148,7 +2188,6 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
                         modifier += ITEM_DATA[a_gameState.player.items[i].itemID].tags.at("Necromantic Focus");
                     }
                 }
-                size_t opponents = a_gameState.rooms[a_gameState.curRoom].LivingInhabitants();
                 int32_t roll = DIE_TWENTY_DISTRIBUTION(a_gameState.generator);
                 int32_t result = roll + modifier;
                 if (roll == 20 || result >= a_target->GetEffectiveArmor()) {
@@ -2758,7 +2797,7 @@ std::vector<StartData> LoadStartData(std::filesystem::path a_path) {
                 loadedStarts.push_back(StartData(
                     name,
                     description,
-                    EntityTemplate(hp, mana, manaRegen, armor, skills, actions),
+                    EntityTemplate("Player", hp, mana, manaRegen, armor, skills, actions),
                     classes,
                     perks,
                     inventory,
@@ -3518,7 +3557,7 @@ std::unordered_map<std::string, EntityTemplate> LoadEntityData(std::filesystem::
                 stringStorage = buffer;
                 mode = 0;
                 ++step;
-                loadedEntities.emplace(name, EntityTemplate(hp, mana, manaRegen, armor, skills, actions));
+                loadedEntities.emplace(name, EntityTemplate(name, hp, mana, manaRegen, armor, skills, actions));
                 skills = std::unordered_map<std::string, int32_t>();
                 actions = std::vector<Action>();
                 if (stringStorage == "FINAL") {
@@ -3540,8 +3579,7 @@ std::unordered_map<std::string, EntityTemplate> LoadEntityData(std::filesystem::
 
 const std::unordered_map<std::string, NPCTemplate> NPC_TEMPLATES = {
     {
-        "Goblin Shaman", NPCTemplate {
-            "Goblin Shaman",
+        "Shaman", NPCTemplate {
             12,
             8,
             [](GameState& a_gameState, NPCData& a_npc) {
@@ -3573,8 +3611,7 @@ const std::unordered_map<std::string, NPCTemplate> NPC_TEMPLATES = {
         }
     },
     {
-        "Goblin Grunt", NPCTemplate {
-            "Goblin Grunt",
+        "Grunt", NPCTemplate {
             4,
             6,
             [](GameState& a_gameState, NPCData& a_npc) {
@@ -3590,8 +3627,7 @@ const std::unordered_map<std::string, NPCTemplate> NPC_TEMPLATES = {
         }, // 1
     },
     {
-        "Goblin Squire", NPCTemplate {
-            "Goblin Squire",
+        "Squire", NPCTemplate {
             6,
             6,
             [](GameState& a_gameState, NPCData& a_npc) {
@@ -3610,8 +3646,7 @@ const std::unordered_map<std::string, NPCTemplate> NPC_TEMPLATES = {
         }
     },
     {
-        "Goblin Priest", NPCTemplate {
-            "Goblin Priest",
+        "Priest", NPCTemplate {
             15,
             10,
             [](GameState& a_gameState, NPCData& a_npc) {
@@ -3660,7 +3695,6 @@ const std::unordered_map<std::string, NPCTemplate> NPC_TEMPLATES = {
     },
     {
         "Reaper", NPCTemplate {
-            "Reaper",
             20,
             20,
             [](GameState& a_gameState, NPCData& a_npc) {
@@ -3670,8 +3704,8 @@ const std::unordered_map<std::string, NPCTemplate> NPC_TEMPLATES = {
                     for (NPCData& npc : a_gameState.rooms[a_gameState.curRoom].inhabitants) {
                         if (npc.curHP < npc.maxHP) {
                             size_t healAmount = a_gameState.RollDice(3, 3);
-                            npc.Heal(healed);
-                            amount += healed;
+                            npc.Heal(healAmount);
+                            amount += healAmount;
                             ++healed;
                         }
                     }
@@ -3700,6 +3734,7 @@ const std::unordered_map<std::string, NPCTemplate> NPC_TEMPLATES = {
 const std::unordered_map<std::string, std::function<NPCData(NPCData)>> NPC_MODIFIERS = {
     {
         "Shaman", [](NPCData a_npc){
+            a_npc.name += " Shaman";
             a_npc.maxMana += 20;
             a_npc.curMana += 20;
             a_npc.manaRegen += 7;
@@ -3708,6 +3743,7 @@ const std::unordered_map<std::string, std::function<NPCData(NPCData)>> NPC_MODIF
     },
     {
         "Squire", [](NPCData a_npc){
+            a_npc.name += " Squire";
             a_npc.maxHP += 8;
             a_npc.curHP += 8;
             a_npc.armor += 2;
@@ -3718,6 +3754,7 @@ const std::unordered_map<std::string, std::function<NPCData(NPCData)>> NPC_MODIF
     },
     {
         "Priest", [](NPCData a_npc){
+            a_npc.name += " Priest";
             a_npc.maxHP += 6;
             a_npc.curHP += 6;
             a_npc.maxMana += 35;
@@ -5959,7 +5996,7 @@ void Interpreter::ParseObjectMethodArgs(GameState& a_gameState, InterpreterConte
 
 int main(int argc, char** argv) {
     //DataComponents::DataContainer container = DataComponents::ParseDataFile(std::filesystem::current_path().append("test.data"));
-    for (const StartData& start : LoadStartData(std::filesystem::current_path().append("starts.data"))) {
+    for (const StartData& start : LoadStartData(std::filesystem::current_path().append("Data").append("starts.data"))) {
         GameState::Starts.push_back(start);
     }
     #pragma region Random Setup
@@ -5967,11 +6004,11 @@ int main(int argc, char** argv) {
     GameState gameState = GameState(std::mt19937(random()), Interpreter());
     #pragma endregion
 
-    for (const Encounter& encounter : LoadEncountersData(std::filesystem::current_path().append("encounters.data"))) {
+    for (const Encounter& encounter : LoadEncountersData(std::filesystem::current_path().append("Data").append("encounters.data"))) {
         ENCOUNTERS.push_back(encounter);
     }
 
-    for (const std::pair<std::string, EntityTemplate>& entityTemplate : LoadEntityData(std::filesystem::current_path().append("entities.data"))) {
+    for (const std::pair<std::string, EntityTemplate>& entityTemplate : LoadEntityData(std::filesystem::current_path().append("Data").append("entities.data"))) {
         ENTITY_TEMPLATES.emplace(entityTemplate);
     }
     
