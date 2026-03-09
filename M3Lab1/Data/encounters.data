@@ -102,9 +102,9 @@ CONTINUE;
 }}
 
 {{
-    room.AddInhabitant("Goblin", "Goblin Grunt");
-    room.AddInhabitant("Goblin", "Goblin Grunt");
-    room.AddInhabitant("Goblin", "Goblin Shaman", "Shaman");
+    room.AddInhabitant("Goblin", "Grunt", "Grunt");
+    room.AddInhabitant("Goblin", "Grunt", "Grunt");
+    room.AddInhabitant("Goblin", "Shaman", "Shaman");
     room.AddRoomAction("Treasure Trove");
     room.SetFlag("TreasureTrove_Count", 3);
     room.SetFlag("TreasureTrove_Dice", 12);
@@ -122,8 +122,8 @@ CONTINUE;
 }}
 
 {{
-    room.AddInhabitant("Goblin", "Goblin Squire", "Squire");
-    room.AddInhabitant("Goblin", "Goblin Shaman", "Shaman");
+    room.AddInhabitant("Goblin", "Squire", "Squire");
+    room.AddInhabitant("Goblin", "Shaman", "Shaman");
     room.AddRoomAction("Treasure Trove");
     room.SetFlag("TreasureTrove_Count", 2);
     room.SetFlag("TreasureTrove_Dice", 20);
@@ -185,8 +185,8 @@ CONTINUE;
 }}
 
 {{
-    room.AddInhabitant("Goblin", "Goblin Squire", "Squire");
-    room.AddInhabitant("Goblin", "Goblin Priest", "Priest");
+    room.AddInhabitant("Goblin", "Squire", "Squire");
+    room.AddInhabitant("Goblin", "Priest", "Priest");
     room.AddRoomAction("Treasure Trove");
     room.SetFlag("TreasureTrove_Count", 4);
     room.SetFlag("TreasureTrove_Dice", 12);
@@ -204,9 +204,9 @@ CONTINUE;
 }}
 
 {{
-    room.AddInhabitant("Goblin", "Goblin Squire", "Squire");
-    room.AddInhabitant("Goblin", "Goblin Squire", "Squire");
-    room.AddInhabitant("Goblin", "Goblin Priest", "Priest:Elder");
+    room.AddInhabitant("Goblin", "Squire", "Squire");
+    room.AddInhabitant("Goblin", "Squire", "Squire");
+    room.AddInhabitant("Goblin", "Priest", "Priest:Elder");
     room.AddRoomAction("Treasure Trove");
     room.SetFlag("TreasureTrove_Count", 4);
     room.SetFlag("TreasureTrove_Dice", 16);
@@ -228,9 +228,9 @@ CONTINUE;
 }}
 
 {{
-    room.AddInhabitant("Goblin", "Goblin Squire", "Squire");
-    room.AddInhabitant("Goblin", "Goblin Squire", "Squire");
-    room.AddInhabitant("Goblin", "Goblin Squire", "Squire");
+    room.AddInhabitant("Goblin", "Squire", "Squire");
+    room.AddInhabitant("Goblin", "Squire", "Squire");
+    room.AddInhabitant("Goblin", "Squire", "Squire");
     room.AddInhabitant("Revenant", "Reaper");
     room.AddRoomAction("Treasure Trove");
     room.SetFlag("TreasureTrove_Count", 5);

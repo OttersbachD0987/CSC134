@@ -3,8 +3,8 @@
 // Daley Ottersbach
 // 3/6/2026
 
-#define __STDC_WANT_LIB_EXT1__ 1
-#include <cstring>
+//#define __STDC_WANT_LIB_EXT1__ 1
+//#include <cstring>
 #include <iostream>
 #include <string>
 #include <string_view>
@@ -21,6 +21,7 @@
 #include <fstream>
 #include <filesystem>
 #include <optional>
+#include <any>
 
 #pragma region Debug Flags
 //#define SCRIPT_PARSER_DEBUG_LOGGING 1
@@ -1120,39 +1121,307 @@ public:
     }
 };
 
+namespace DataComponents {
+    /*
+    # EBNF Form
+    
+    <value_char> ::= ([a-z] | [A-Z] | [0-9] | "_" | "-" | "\\n" | "\\\"" | "\\t" | "\\v" | "\\;" | "|" | "." | "," | "'" | ":" | "[" | "]" | "{" | "}" | "/" | "?" | "<" | ">" | "=" | "+" | "!" | "`" | "~" | "@" | "#" | "$" | "%" | "^" | "&" | "*" | "(" | ")")
+    <value_string> ::= ("\"" (<value_char> | ";" | <deadspace>)+ "\"" | (<value_char> | <deadspace>)+)
+    <value_uint> ::= [0-9]+
+    <value_int> ::= "-"? <value_uint>
+
+    <type_int> ::= "INT" ("8" | "16" | "32" | "64")
+    <type_uint> ::= "U" <type_int>
+
+    <delim> ::= ":"
+
+    <identifier> ::= ([a-z] | [A-Z] | [0-9] | "_")+
+    <deadspace> ::= (" " | "\n" | "\t" | "\v")
+    <statement_name> ::= <deadspace>* <identifier> <deadspace>*
+    <statement_data> ::= <deadspace>* <delim> <deadspace>*
+    <statement> ::= (<statement_uint> | <statement_int> | <statement_bool> | <statement_string>)
+
+    <statement_uint> ::= <statement_name> "<" <deadspace>* <type_uint> <deadspace>* ">" <statement_data> <value_uint> <deadspace>* ";"
+    <statement_int> ::= <statement_name> "<" <deadspace>* <type_int> <deadspace>* ">" <statement_data> <value_int> <deadspace>* ";"
+    <statement_bool> ::= <statement_name> "<" <deadspace>* "BOOL" <deadspace>* ">" <statement_data> ((("t" | "T") ("r" | "R") ("u" | "U") ("e" | "E")) | (("f" | "F") ("a" | "A") ("l" | "L") ("s" | "S") ("e" | "E"))) <deadspace>* ";"
+    <statement_string> ::= <statement_name> "<" <deadspace>* "STRING" <deadspace>* ">" <statement_data> (<value_string> <deadspace>*)+ ";"
+    */
+
+    enum class DataType {
+        UINT8,
+        UINT16,
+        UINT32,
+        UINT64,
+        INT8,
+        INT16,
+        INT32,
+        INT64,
+        BOOL,
+        STRING,
+        FLOAT,
+        INVALID,
+    };
+
+    struct DataHolder {
+    public:
+        std::string key;
+        DataType type;
+        std::any data;
+        size_t size;
+
+        DataHolder(std::string_view a_key, const DataType& a_dataType, const std::any a_data, size_t a_size) {
+            this->key = a_key;
+            this->type = a_dataType;
+            this->data = a_data;
+            this->size = a_size;
+        }
+
+        void SetData(std::any a_data, size_t a_size) {
+            this->data = a_data;
+            this->size = a_size;
+        }
+
+        ~DataHolder() {
+            //this->key.clear();
+            //this->type = DataType::INVALID;
+            this->data.reset();
+            //this->size = 0;
+        }
+    };
+
+    struct DataContainer {
+    public:
+        std::unordered_map<std::string, DataHolder> data;
+
+        DataContainer(void) {
+            this->data = std::unordered_map<std::string, DataHolder>();
+        }
+
+        template<typename T>
+        T Get(const std::string& a_key) {
+            return std::any_cast<T>(data.at(a_key).data);
+        }
+
+        void Set(const std::string& a_key, DataType a_dataType, const std::any a_data, size_t a_size) {
+            data.emplace(a_key, DataHolder(a_key, a_dataType, a_data, a_size));
+        }
+    };
+
+    enum class ReaderMode {
+        COLLECTING_NAME,
+        COLLECTING_TYPE,
+        COLLECTING_DELM,
+        COLLECTING_DATA,
+    };
+
+    DataContainer ParseDataFile(std::filesystem::path a_path) {
+        std::ifstream reader = std::ifstream(a_path.string());
+        DataContainer container = DataContainer();
+        ReaderMode mode = ReaderMode::COLLECTING_NAME;
+        bool inString = false;
+        bool escaped = false;
+        char character = 0;
+        std::string collectorName = "";
+        std::string collectorType = "";
+        std::string collectorData = "";
+        DataType dataType = DataType::INVALID;
+        while ((character = reader.get()) != -1) {
+            //std::cout << character;
+            switch (mode) {
+                case ReaderMode::COLLECTING_NAME:
+                    switch (character) {
+                        case ' ':
+                        case '\t':
+                        case '\v':
+                        case '\n':
+                            continue;
+                        case '<':
+                            mode = ReaderMode::COLLECTING_TYPE;
+                            break;
+                        default:
+                            collectorName += character;
+                            break;
+                    }
+                    break;
+                case ReaderMode::COLLECTING_TYPE:
+                    switch (character) {
+                        case ' ':
+                        case '\t':
+                        case '\v':
+                        case '\n':
+                            continue;
+                        case '>':
+                            if (collectorType == "uint8") {
+                                dataType = DataType::UINT8;
+                            } else if (collectorType == "uint16") {
+                                dataType = DataType::UINT16;
+                            } else if (collectorType == "uint32") {
+                                dataType = DataType::UINT32;
+                            } else if (collectorType == "uint64") {
+                                dataType = DataType::UINT64;
+                            } else if (collectorType == "int8") {
+                                dataType = DataType::INT8;
+                            } else if (collectorType == "int16") {
+                                dataType = DataType::INT16;
+                            } else if (collectorType == "int32") {
+                                dataType = DataType::INT32;
+                            } else if (collectorType == "int64") {
+                                dataType = DataType::INT64;
+                            } else if (collectorType == "bool") {
+                                dataType = DataType::BOOL;
+                            } else if (collectorType == "string") {
+                                dataType = DataType::STRING;
+                            } else if (collectorType == "float") {
+                                dataType = DataType::FLOAT;
+                            }  else {
+                                dataType = DataType::INVALID;
+                                std::cout << "Error, invalid type \"" << collectorType << "\"." << std::endl;
+                            }
+                            mode = ReaderMode::COLLECTING_DELM;
+                            break;
+                        default:
+                            collectorType += character;
+                            break;
+                    }
+                    break;
+                case ReaderMode::COLLECTING_DELM:
+                    switch (character) {
+                        case ' ':
+                        case '\t':
+                        case '\v':
+                        case '\n':
+                            continue;
+                        case ':':
+                            mode = ReaderMode::COLLECTING_DATA;
+                            break;
+                        default:
+                            std::cout << "Invalid char between delimeter \"" << character << "\"" << std::endl;
+                            break;
+                    }
+                    break;
+                case ReaderMode::COLLECTING_DATA:
+                    switch (character) {
+                        case ' ':
+                        case '\t':
+                        case '\v':
+                        case '\n':
+                            if (inString) {
+                                collectorData += character;
+                            }
+                            escaped = false;
+                            continue;
+                        case '\\':
+                            if (escaped) {
+                                collectorData += character;
+                                escaped = false;
+                            } else {
+                                escaped = true;
+                            }
+                            break;
+                        case ';':
+                            if (escaped || inString) {
+                                collectorData += character;
+                            } else {
+                                mode = ReaderMode::COLLECTING_NAME;
+                                switch (dataType) {
+                                    case DataType::UINT8: {
+                                        uint8_t data = std::stoul(collectorData);
+                                        container.Set(collectorName, dataType, data, sizeof(uint8_t));
+                                        break;
+                                    }
+                                    case DataType::UINT16: {
+                                        uint16_t data = std::stoul(collectorData);
+                                        container.Set(collectorName, dataType, data, sizeof(uint16_t));
+                                        break;
+                                    }
+                                    case DataType::UINT32: {
+                                        uint32_t data = std::stoul(collectorData);
+                                        container.Set(collectorName, dataType, data, sizeof(uint32_t));
+                                        break;
+                                    }
+                                    case DataType::UINT64: {
+                                        uint64_t data = std::stoull(collectorData);
+                                        container.Set(collectorName, dataType, data, sizeof(uint64_t));
+                                        break;
+                                    }
+                                    case DataType::INT8: {
+                                        int8_t data = std::stoi(collectorData);
+                                        container.Set(collectorName, dataType, data, sizeof(int8_t));
+                                        break;
+                                    }
+                                    case DataType::INT16: {
+                                        int16_t data = std::stoi(collectorData);
+                                        container.Set(collectorName, dataType, data, sizeof(int16_t));
+                                        break;
+                                    }
+                                    case DataType::INT32: {
+                                        int32_t data = std::stoi(collectorData);
+                                        container.Set(collectorName, dataType, data, sizeof(int32_t));
+                                        break;
+                                    }
+                                    case DataType::INT64: {
+                                        int64_t data = std::stoll(collectorData);
+                                        container.Set(collectorName, dataType, data, sizeof(int64_t));
+                                        break;
+                                    }
+                                    case DataType::BOOL: {
+                                        std::transform(collectorData.begin(), collectorData.end(), collectorData.begin(), [](unsigned char a_character) { return std::tolower(a_character);});
+                                        container.Set(collectorName, dataType, collectorData == "true", sizeof(bool));
+                                        break;
+                                    }
+                                    case DataType::STRING: {
+                                        container.Set(collectorName, dataType, (collectorData + '\0').c_str(), collectorData.size() + 1);
+                                        break;
+                                    }
+                                    case DataType::FLOAT: {
+                                        float data = std::stof(collectorData);
+                                        container.Set(collectorName, dataType, data, sizeof(float));
+                                        break;
+                                    }
+                                }
+                                collectorName = "";
+                                collectorType = "";
+                                collectorData = "";
+                            }
+                            escaped = false;
+                            break;
+                        case '\"':
+                            if (escaped) {
+                                collectorData += '\"';
+                            } else {
+                                inString = !inString;
+                            }
+                            escaped = false;
+                            break;
+                        default:
+                            if (escaped) {
+                                switch (character) {
+                                    case 't':
+                                        collectorData += '\t';
+                                    case 'v':
+                                        collectorData += '\v';
+                                    case 'n':
+                                        collectorData += '\n';
+                                    default:
+                                        collectorData += character;
+                                }
+                            } else {
+                                collectorData += character;
+                            }
+                            escaped = false;
+                            break;
+                    }
+                    break;
+            }
+        }
+
+        reader.close();
+
+        return container;
+    }
+}
+
 #pragma region SockScript Setup
-struct VariablePtr {
-public:
-    void* data;
-    size_t size;
-
-    VariablePtr(const void* a_data, size_t a_size) {
-        this->data = malloc(a_size);
-        this->size = a_size;
-        
-        #ifdef __STDC_LIB_EXT1__
-        memcpy_s(this->data, a_size, a_data, a_size);
-        #else
-        memcpy(this->data, a_data, a_size);
-        #endif
-    }
-
-    void SetData(const void* a_data, size_t a_size) {
-        this->data = realloc(this->data, a_size);
-        this->size = a_size;
-
-        #ifdef __STDC_LIB_EXT1__
-        memcpy_s(this->data, a_size, a_data, a_size);
-        #else
-        memcpy(this->data, a_data, a_size);
-        #endif
-    }
-
-    ~VariablePtr() {
-        free(this->data);
-    }
-};
-
 enum struct ReaderMode {
     READ,
     VAR_NAME,
@@ -1669,7 +1938,7 @@ public:
 
 struct Interpreter {
 public:
-    std::unordered_map<std::string, VariablePtr> variables = std::unordered_map<std::string, VariablePtr>();
+    DataComponents::DataContainer variables = DataComponents::DataContainer();
 
     Interpreter(void) {
 
@@ -1885,7 +2154,6 @@ const std::unordered_map<std::string, Action> STANDARD_ACTIONS = {
 
                 EatInput();
 
-                PlayerData* player = dynamic_cast<PlayerData*>(a_caster);
                 if (player != nullptr) {
                     ++player->usedTurns;
                 }
@@ -2969,311 +3237,6 @@ public:
     }
 };
 
-namespace DataComponents {
-    /*
-    # EBNF Form
-    
-    <value_char> ::= ([a-z] | [A-Z] | [0-9] | "_" | "-" | "\\n" | "\\\"" | "\\t" | "\\v" | "\\;" | "|" | "." | "," | "'" | ":" | "[" | "]" | "{" | "}" | "/" | "?" | "<" | ">" | "=" | "+" | "!" | "`" | "~" | "@" | "#" | "$" | "%" | "^" | "&" | "*" | "(" | ")")
-    <value_string> ::= ("\"" (<value_char> | ";" | <deadspace>)+ "\"" | (<value_char> | <deadspace>)+)
-    <value_uint> ::= [0-9]+
-    <value_int> ::= "-"? <value_uint>
-
-    <type_int> ::= "INT" ("8" | "16" | "32" | "64")
-    <type_uint> ::= "U" <type_int>
-
-    <delim> ::= ":"
-
-    <identifier> ::= ([a-z] | [A-Z] | [0-9] | "_")+
-    <deadspace> ::= (" " | "\n" | "\t" | "\v")
-    <statement_name> ::= <deadspace>* <identifier> <deadspace>*
-    <statement_data> ::= <deadspace>* <delim> <deadspace>*
-    <statement> ::= (<statement_uint> | <statement_int> | <statement_bool> | <statement_string>)
-
-    <statement_uint> ::= <statement_name> "<" <deadspace>* <type_uint> <deadspace>* ">" <statement_data> <value_uint> <deadspace>* ";"
-    <statement_int> ::= <statement_name> "<" <deadspace>* <type_int> <deadspace>* ">" <statement_data> <value_int> <deadspace>* ";"
-    <statement_bool> ::= <statement_name> "<" <deadspace>* "BOOL" <deadspace>* ">" <statement_data> ((("t" | "T") ("r" | "R") ("u" | "U") ("e" | "E")) | (("f" | "F") ("a" | "A") ("l" | "L") ("s" | "S") ("e" | "E"))) <deadspace>* ";"
-    <statement_string> ::= <statement_name> "<" <deadspace>* "STRING" <deadspace>* ">" <statement_data> (<value_string> <deadspace>*)+ ";"
-    */
-
-    enum class DataType {
-        UINT8,
-        UINT16,
-        UINT32,
-        UINT64,
-        INT8,
-        INT16,
-        INT32,
-        INT64,
-        BOOL,
-        STRING,
-        INVALID,
-    };
-
-    struct DataHolder {
-    public:
-        std::string key;
-        DataType type;
-        void* data;
-        size_t size;
-
-        DataHolder(std::string_view a_key, const DataType& a_dataType, const void* a_data, size_t a_size) {
-            this->key = a_key;
-            this->type = a_dataType;
-            this->data = malloc(a_size);
-            this->size = a_size;
-            
-            
-            #ifdef __STDC_LIB_EXT1__
-            memcpy_s(this->data, a_size, a_data, a_size);
-            #else
-            memcpy(this->data, a_data, a_size);
-            #endif
-
-            //if (a_dataType == DataType::STRING) {
-            //    std::cout << "Value: " << (char*)data << std::endl;
-            //}
-        }
-
-        void SetData(const void* a_data, size_t a_size) {
-            this->data = realloc(this->data, a_size);
-            this->size = a_size;
-
-            #ifdef __STDC_LIB_EXT1__
-            memcpy_s(this->data, a_size, a_data, a_size);
-            #else
-            memcpy(this->data, a_data, a_size);
-            #endif
-        }
-
-        ~DataHolder() {
-            //this->key.clear();
-            //this->type = DataType::INVALID;
-            free(this->data);
-            //this->size = 0;
-        }
-    };
-
-    struct DataContainer {
-    public:
-        std::unordered_map<std::string, DataHolder> data;
-
-        DataContainer(void) {
-            this->data = std::unordered_map<std::string, DataHolder>();
-        }
-
-        template<typename T>
-        T* Get(const std::string& a_key) {
-            return (T*)data.at(a_key).data;
-        }
-    };
-
-    enum class ReaderMode {
-        COLLECTING_NAME,
-        COLLECTING_TYPE,
-        COLLECTING_DELM,
-        COLLECTING_DATA,
-    };
-
-    DataContainer ParseDataFile(std::filesystem::path a_path) {
-        std::ifstream reader = std::ifstream(a_path.string());
-        DataContainer container = DataContainer();
-        ReaderMode mode = ReaderMode::COLLECTING_NAME;
-        bool inString = false;
-        bool escaped = false;
-        char character = 0;
-        std::string collectorName = "";
-        std::string collectorType = "";
-        std::string collectorData = "";
-        DataType dataType = DataType::INVALID;
-        while ((character = reader.get()) != -1) {
-            //std::cout << character;
-            switch (mode) {
-                case ReaderMode::COLLECTING_NAME:
-                    switch (character) {
-                        case ' ':
-                        case '\t':
-                        case '\v':
-                        case '\n':
-                            continue;
-                        case '<':
-                            mode = ReaderMode::COLLECTING_TYPE;
-                            break;
-                        default:
-                            collectorName += character;
-                            break;
-                    }
-                    break;
-                case ReaderMode::COLLECTING_TYPE:
-                    switch (character) {
-                        case ' ':
-                        case '\t':
-                        case '\v':
-                        case '\n':
-                            continue;
-                        case '>':
-                            if (collectorType == "UINT8") {
-                                dataType = DataType::UINT8;
-                            } else if (collectorType == "UINT16") {
-                                dataType = DataType::UINT16;
-                            } else if (collectorType == "UINT32") {
-                                dataType = DataType::UINT32;
-                            } else if (collectorType == "UINT64") {
-                                dataType = DataType::UINT64;
-                            } else if (collectorType == "INT8") {
-                                dataType = DataType::INT8;
-                            } else if (collectorType == "INT16") {
-                                dataType = DataType::INT16;
-                            } else if (collectorType == "INT32") {
-                                dataType = DataType::INT32;
-                            } else if (collectorType == "INT64") {
-                                dataType = DataType::INT64;
-                            } else if (collectorType == "BOOL") {
-                                dataType = DataType::BOOL;
-                            } else if (collectorType == "STRING") {
-                                dataType = DataType::STRING;
-                            } else {
-                                dataType = DataType::INVALID;
-                                std::cout << "Error, invalid type \"" << collectorType << "\"." << std::endl;
-                            }
-                            mode = ReaderMode::COLLECTING_DELM;
-                            break;
-                        default:
-                            collectorType += character;
-                            break;
-                    }
-                    break;
-                case ReaderMode::COLLECTING_DELM:
-                    switch (character) {
-                        case ' ':
-                        case '\t':
-                        case '\v':
-                        case '\n':
-                            continue;
-                        case ':':
-                            mode = ReaderMode::COLLECTING_DATA;
-                            break;
-                        default:
-                            std::cout << "Invalid char between delimeter \"" << character << "\"" << std::endl;
-                            break;
-                    }
-                    break;
-                case ReaderMode::COLLECTING_DATA:
-                    switch (character) {
-                        case ' ':
-                        case '\t':
-                        case '\v':
-                        case '\n':
-                            if (inString) {
-                                collectorData += character;
-                            }
-                            escaped = false;
-                            continue;
-                        case '\\':
-                            if (escaped) {
-                                collectorData += character;
-                                escaped = false;
-                            } else {
-                                escaped = true;
-                            }
-                            break;
-                        case ';':
-                            if (escaped || inString) {
-                                collectorData += character;
-                            } else {
-                                mode = ReaderMode::COLLECTING_NAME;
-                                switch (dataType) {
-                                    case DataType::UINT8: {
-                                        uint8_t data = std::stoul(collectorData);
-                                        container.data.emplace(collectorName, DataHolder(collectorName, dataType, (void*)(&data), sizeof(uint8_t)));
-                                        break;
-                                    }
-                                    case DataType::UINT16: {
-                                        uint16_t data = std::stoul(collectorData);
-                                        container.data.emplace(collectorName, DataHolder(collectorName, dataType, (void*)(&data), sizeof(uint16_t)));
-                                        break;
-                                    }
-                                    case DataType::UINT32: {
-                                        uint32_t data = std::stoul(collectorData);
-                                        container.data.emplace(collectorName, DataHolder(collectorName, dataType, (void*)(&data), sizeof(uint32_t)));
-                                        break;
-                                    }
-                                    case DataType::UINT64: {
-                                        uint64_t data = std::stoull(collectorData);
-                                        container.data.emplace(collectorName, DataHolder(collectorName, dataType, (void*)(&data), sizeof(uint64_t)));
-                                        break;
-                                    }
-                                    case DataType::INT8: {
-                                        int8_t data = std::stoi(collectorData);
-                                        container.data.emplace(collectorName, DataHolder(collectorName, dataType, (void*)(&data), sizeof(int8_t)));
-                                        break;
-                                    }
-                                    case DataType::INT16: {
-                                        int16_t data = std::stoi(collectorData);
-                                        container.data.emplace(collectorName, DataHolder(collectorName, dataType, (void*)(&data), sizeof(int16_t)));
-                                        break;
-                                    }
-                                    case DataType::INT32: {
-                                        int32_t data = std::stoi(collectorData);
-                                        container.data.emplace(collectorName, DataHolder(collectorName, dataType, (void*)(&data), sizeof(int32_t)));
-                                        break;
-                                    }
-                                    case DataType::INT64: {
-                                        int64_t data = std::stoll(collectorData);
-                                        container.data.emplace(collectorName, DataHolder(collectorName, dataType, (void*)(&data), sizeof(int64_t)));
-                                        break;
-                                    }
-                                    case DataType::BOOL: {
-                                        std::transform(collectorData.begin(), collectorData.end(), collectorData.begin(), [](unsigned char a_character) { return std::tolower(a_character);});
-                                        container.data.emplace(collectorName, DataHolder(collectorName, dataType, (void*)(collectorData == "true"), sizeof(bool)));
-                                        break;
-                                    }
-                                    case DataType::STRING: {
-                                        container.data.emplace(collectorName, DataHolder(collectorName, dataType, (void*)(collectorData + '\0').c_str(), collectorData.size() + 1));
-                                        break;
-                                    }
-                                }
-                                collectorName = "";
-                                collectorType = "";
-                                collectorData = "";
-                            }
-                            escaped = false;
-                            break;
-                        case '\"':
-                            if (escaped) {
-                                collectorData += '\"';
-                            } else {
-                                inString = !inString;
-                            }
-                            escaped = false;
-                            break;
-                        default:
-                            if (escaped) {
-                                switch (character) {
-                                    case 't':
-                                        collectorData += '\t';
-                                    case 'v':
-                                        collectorData += '\v';
-                                    case 'n':
-                                        collectorData += '\n';
-                                    default:
-                                        collectorData += character;
-                                }
-                            } else {
-                                collectorData += character;
-                            }
-                            escaped = false;
-                            break;
-                    }
-                    break;
-            }
-        }
-
-        reader.close();
-
-        return container;
-    }
-}
-
 #pragma region Shops
 struct ShopGenerationRule {
 public:
@@ -3732,6 +3695,12 @@ const std::unordered_map<std::string, NPCTemplate> NPC_TEMPLATES = {
 };
 
 const std::unordered_map<std::string, std::function<NPCData(NPCData)>> NPC_MODIFIERS = {
+    {
+        "Grunt", [](NPCData a_npc){
+            a_npc.name += " Grunt";
+            return a_npc;
+        }
+    },
     {
         "Shaman", [](NPCData a_npc){
             a_npc.name += " Shaman";
@@ -4332,14 +4301,18 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
                             std::string varName = context.stringRegisters[context.stringRegister - 2];
                             std::string varType = context.stringRegisters[context.stringRegister - 1];
                             if (varType == "float") {
-                                int32_t value = ParseFloatExpression(a_gameState, context, context.stringRegisters[context.stringRegister]);
-                                variables.insert_or_assign(varName, VariablePtr((void*)&value, sizeof(float)));
+                                float value = ParseFloatExpression(a_gameState, context, context.stringRegisters[context.stringRegister]);
+                                variables.Set(varName, DataComponents::DataType::FLOAT, value, sizeof(float));
+                                //variables.data.emplace(varName, DataComponents::DataHolder(varName, DataComponents::DataType::FLOAT, (void*)(&value), sizeof(float)));
                             } else if (varType == "uint32") {
                                 int32_t value = ParseIntExpression(a_gameState, context, context.stringRegisters[context.stringRegister]);
-                                variables.insert_or_assign(varName, VariablePtr((void*)&value, sizeof(int32_t)));
+                                //std::cout << "Setting: " << varName << " : " << value << std::endl;
+                                variables.Set(varName, DataComponents::DataType::INT32, value, sizeof(int32_t));
+                                //std::cout << "Set: " << varName << " : " << value << std::endl;
+                                //std::cout << "Set: " << varName << " : " << variables.Get<int32_t>(varName) << std::endl;
                             } else if (varType == "bool") {
                                 bool value = ParseBoolExpression(a_gameState, context, context.stringRegisters[context.stringRegister]);
-                                variables.insert_or_assign(varName, VariablePtr((void*)&value, sizeof(bool)));
+                                variables.Set(varName, DataComponents::DataType::BOOL, value, sizeof(bool));
                             } else if (varType == "string") {
                                 std::cout << "String is not a supported data type." << std::endl;
                             }
@@ -5520,17 +5493,17 @@ void Interpreter::ParseVariableName(GameState& a_gameState, InterpreterContext& 
     std::cout << "Prae Var Val" << std::endl;
     #endif
     if (varType == "int32") {
-        std::cout << std::format("The value of {} is {}", a_context.stringRegisters[a_context.stringRegister], *((int32_t*)(variables.at(a_context.stringRegisters[a_context.stringRegister]).data))) << std::endl;
-        a_context.SetIntRegister(*((int32_t*)(variables.at(a_context.stringRegisters[a_context.stringRegister]).data)));
+        //std::cout << std::format("The value of {} is {}", a_context.stringRegisters[a_context.stringRegister], variables.Get<int32_t>(a_context.stringRegisters[a_context.stringRegister])) << std::endl;
+        a_context.SetIntRegister(variables.Get<int32_t>(a_context.stringRegisters[a_context.stringRegister]));
     } else if (varType == "uint32") {
-        std::cout << std::format("The value of {} is {}", a_context.stringRegisters[a_context.stringRegister], *((int32_t*)(variables.at(a_context.stringRegisters[a_context.stringRegister]).data))) << std::endl;
-        a_context.SetIntRegister(*((int32_t*)(variables.at(a_context.stringRegisters[a_context.stringRegister]).data)));
+        //std::cout << std::format("The value of {} is {}", a_context.stringRegisters[a_context.stringRegister], variables.Get<int32_t>(a_context.stringRegisters[a_context.stringRegister])) << std::endl;
+        a_context.SetIntRegister(variables.Get<int32_t>(a_context.stringRegisters[a_context.stringRegister]));
     } else if (varType == "float") {
-        std::cout << std::format("The value of {} is {}", a_context.stringRegisters[a_context.stringRegister], *((float*)(variables.at(a_context.stringRegisters[a_context.stringRegister]).data))) << std::endl;
-        a_context.SetFloatRegister(*((float*)(variables.at(a_context.stringRegisters[a_context.stringRegister]).data)));
+        //std::cout << std::format("The value of {} is {}", a_context.stringRegisters[a_context.stringRegister], variables.Get<float>(a_context.stringRegisters[a_context.stringRegister])) << std::endl;
+        a_context.SetFloatRegister(variables.Get<float>(a_context.stringRegisters[a_context.stringRegister]));
     } else if (varType == "bool") {
-        std::cout << std::format("The value of {} is {}", a_context.stringRegisters[a_context.stringRegister], *((bool*)(variables.at(a_context.stringRegisters[a_context.stringRegister]).data))) << std::endl;
-        a_context.SetBoolRegister(*((bool*)(variables.at(a_context.stringRegisters[a_context.stringRegister]).data)));
+        //std::cout << std::format("The value of {} is {}", a_context.stringRegisters[a_context.stringRegister], variables.Get<bool>(a_context.stringRegisters[a_context.stringRegister])) << std::endl;
+        a_context.SetBoolRegister(variables.Get<bool>(a_context.stringRegisters[a_context.stringRegister]));
     }
     #ifdef SCRIPT_PARSER_DEBUG_LOGGING
     std::cout << "Post Var Val" << std::endl;
@@ -5994,6 +5967,30 @@ void Interpreter::ParseObjectMethodArgs(GameState& a_gameState, InterpreterConte
 }
 #pragma endregion
 
+void PrintCombatNPCData(GameState& a_gameState, const NPCData& a_npc) {
+    std::cout << a_npc.name<< "\n";
+
+    if (
+        a_gameState.player.perks.test(static_cast<size_t>(Perks::INSIGHT))
+    ) {
+        std::cout << "- Armor [" << a_npc.armor << "]\n";
+    }
+
+    if (
+        a_gameState.player.perks.test(static_cast<size_t>(Perks::INSIGHT)) ||
+        a_gameState.player.GetSkillModifier("Brawler") >= 6
+    ) {
+        std::cout << "- HP [" << a_npc.curHP << "/" << a_npc.maxHP << "]\n";
+    }
+
+    if (
+        a_gameState.player.perks.test(static_cast<size_t>(Perks::INSIGHT)) ||
+        a_gameState.player.perks.test(static_cast<size_t>(Perks::ARCANE_EYES))
+    ) {
+        std::cout << "- Mana [" << a_npc.curMana << "/" << a_npc.maxMana << "]\n";
+    }
+}
+
 int main(int argc, char** argv) {
     //DataComponents::DataContainer container = DataComponents::ParseDataFile(std::filesystem::current_path().append("test.data"));
     for (const StartData& start : LoadStartData(std::filesystem::current_path().append("Data").append("starts.data"))) {
@@ -6189,7 +6186,7 @@ int main(int argc, char** argv) {
                 break;
             case Screen::GAME:
                 switch (gameState.menu) {
-                    case Menu::NONE:
+                    case Menu::NONE: {
                         if (!gameState.rooms[gameState.curRoom].initialized) {
                             InitializeRoom(&gameState.rooms[gameState.curRoom]);
                             encounter = GetRandomEncounter();
@@ -6244,7 +6241,7 @@ int main(int argc, char** argv) {
                                 gameState.screen = Screen::TITLE;
                                 gameState.menu = Menu::NONE;
                                 break;
-                            case 333:
+                            case 333: {
                                 if (gameState.debug.enabled) {
                                     int32_t number = 0;
                                     std::cout << "\x1b[1mDebug Menu (EDIT)\x1b[22m\n1) Change Gold\n2) Change XP\n3) Back\n\nOption: ";
@@ -6265,6 +6262,7 @@ int main(int argc, char** argv) {
                                     }
                                 }
                                 break;
+                            }
                             case 444: {
                                 if (gameState.debug.enabled) {
                                     int32_t number = 0;
@@ -6308,7 +6306,7 @@ int main(int argc, char** argv) {
                                 }
                                 break;
                             }
-                            case 555:
+                            case 555: {
                                 if (gameState.debug.enabled) {
                                     int32_t number = 0;
                                     std::cout << std::format("\x1b[1mDebug Menu (FLAG)\x1b[22m\n1) {}No Fights\x1b[39m\n2) ERR\n3) Back\n\nOption: ", (gameState.debug.noFights ? "\x1b[32m" : "\x1b[31m"));
@@ -6324,12 +6322,15 @@ int main(int argc, char** argv) {
                                     }
                                 }
                                 break;
-                            case 666:
+                            }
+                            case 666: {
                                 gameState.debug.enabled = !gameState.debug.enabled;
                                 break;
+                            }
                         }
                         break;
-                    case Menu::MOVING:
+                    }
+                    case Menu::MOVING: {
                         room = &gameState.rooms[gameState.curRoom];
                         std::cout << "-------------------------------\nRooms:\n";
                         for (size_t connectionIndex = 0; connectionIndex < room->connections.size();) {
@@ -6347,7 +6348,8 @@ int main(int argc, char** argv) {
                             gameState.menu = Menu::NONE;
                         }
                         break;
-                    case Menu::ROOM_ACTIONS:
+                    }
+                    case Menu::ROOM_ACTIONS: {
                         room = &gameState.rooms[gameState.curRoom];
                         std::cout << "-------------------------------\nActions:\n";
                         for (size_t i = 0; i < room->roomActions.size(); ++i) {
@@ -6366,7 +6368,8 @@ int main(int argc, char** argv) {
                             gameState.menu = Menu::NONE;
                         }
                         break;
-                    case Menu::STATS:
+                    }
+                    case Menu::STATS: {
                         std::cout 
                             << "-------------------------------\n\x1b[1mStats:\x1b[22m\nHP: " 
                             << gameState.player.curHP << "/" << gameState.player.maxHP 
@@ -6407,6 +6410,7 @@ int main(int argc, char** argv) {
                                 break;
                         }
                         break;
+                    }
                     case Menu::LEVEL_UP: {
                         std::cout 
                             << "-------------------------------\nXP: " 
@@ -6499,20 +6503,8 @@ int main(int argc, char** argv) {
                             bool enemiesGo = true;
                             std::cout << "-------------------------------\nOpponents:\n";
                             for (size_t npcIndex = 0; npcIndex < room->inhabitants.size(); ++npcIndex) {
-                                std::cout << (npcIndex + 1)  << ") " << room->inhabitants[npcIndex].name<< "\n";
-
-                                if (
-                                    gameState.player.perks.test(static_cast<size_t>(Perks::INSIGHT))
-                                ) {
-                                    std::cout << "- HP [" << room->inhabitants[npcIndex].curHP << "/" << room->inhabitants[npcIndex].maxHP << "]\n";
-                                }
-
-                                if (
-                                    gameState.player.perks.test(static_cast<size_t>(Perks::INSIGHT)) ||
-                                    gameState.player.perks.test(static_cast<size_t>(Perks::ARCANE_EYES))
-                                ) {
-                                    std::cout << "- Mana [" << room->inhabitants[npcIndex].curMana << "/" << room->inhabitants[npcIndex].maxMana << "]\n";
-                                }
+                                std::cout << (npcIndex + 1)  << ") ";
+                                PrintCombatNPCData(gameState, room->inhabitants[npcIndex]);
                             }
                             std::cout << "\n\nTurns: " << gameState.player.usedTurns << "/" << gameState.player.turns << "\n-------------------------------\nActions:\n";
                             for (size_t i = 0; i < gameState.player.actions.size(); ++i) {
@@ -6526,21 +6518,8 @@ int main(int argc, char** argv) {
                                 size_t action = choice;
                                 std::cout << "-------------------------------\nTargets:\n";
                                 for (size_t npcIndex = 0; npcIndex < room->inhabitants.size(); ++npcIndex) {
-                                    std::cout << (npcIndex + 1)  << ") " << room->inhabitants[npcIndex].name<< "\n";
-
-                                    if (
-                                        gameState.player.perks.test(static_cast<size_t>(Perks::INSIGHT)) ||
-                                        gameState.player.GetSkillModifier("Brawler") >= 6
-                                    ) {
-                                        std::cout << "- HP [" << room->inhabitants[npcIndex].curHP << "/" << room->inhabitants[npcIndex].maxHP << "]\n";
-                                    }
-
-                                    if (
-                                        gameState.player.perks.test(static_cast<size_t>(Perks::INSIGHT)) ||
-                                        gameState.player.perks.test(static_cast<size_t>(Perks::ARCANE_EYES))
-                                    ) {
-                                        std::cout << "- Mana [" << room->inhabitants[npcIndex].curMana << "/" << room->inhabitants[npcIndex].maxMana << "]\n";
-                                    }
+                                    std::cout << (npcIndex + 1)  << ") ";
+                                    PrintCombatNPCData(gameState, room->inhabitants[npcIndex]);
                                 }
                                 std::cout << (room->inhabitants.size() + 1)  << ") Yourself\n- HP [" << gameState.player.curHP << "/" << gameState.player.maxHP << "]\n- Mana [" << gameState.player.curMana << "/" << gameState.player.maxMana << "]\n"<< (room->inhabitants.size() + 2)  << ") Back\n\nOption: ";
                                 SafeInput<uint32_t>(choice);

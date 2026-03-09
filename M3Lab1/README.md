@@ -11,7 +11,7 @@ To build Ars Timoris use the following commands:
 ### Linux (GCC/G++)
 
 ```bash
-g++ -std=c++23 main.cpp
+g++ -std=c++23 -fpermissive main.cpp
 ```
 
 ### Windows & MacOS (Clang)
