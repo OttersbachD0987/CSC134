@@ -1,6 +1,7 @@
 #include <ArsTimoris/Sockscript/InterpreterContext.h>
 #include <iostream>
 #include <format>
+#include <ArsTimoris/Util/DebugLogging.hpp>
 
 std::string ReaderModeDisplayName(ReaderMode a_mode) {
     switch (a_mode) {
@@ -70,25 +71,25 @@ std::string OperatorEvaluationDisplayName(OperatorEvaluation a_operator) {
 
 void InterpreterContext::DumpStringRegister(void) {
     for (size_t i = 0; i < stringRegisters.size(); ++i) {
-        std::cout << std::format("{}String Register {:0>2}: {}\x1b[39m", i == stringRegister ? "\x1b[32m" : "\x1b[34m", i + 1, stringRegisters[i]) << std::endl;
+        DebugLogging::ParsingOut << std::format("{}String Register {:0>2}: {}\x1b[39m", i == stringRegister ? "\x1b[32m" : "\x1b[34m", i + 1, stringRegisters[i]) << std::endl;
     }
 }
 
 void InterpreterContext::DumpIntRegister(void) {
     for (size_t i = 0; i < intRegisters.size(); ++i) {
-        std::cout << (i == intRegister ? "\x1b[32m" : "\x1b[34m") << "Int Register " << (i + 1) << ": " << intRegisters[i] << "\x1b[39m" << std::endl;
+        DebugLogging::ParsingOut << (i == intRegister ? "\x1b[32m" : "\x1b[34m") << "Int Register " << (i + 1) << ": " << intRegisters[i] << "\x1b[39m" << std::endl;
     }
 }
 
 void InterpreterContext::DumpFloatRegister(void) {
     for (size_t i = 0; i < floatRegisters.size(); ++i) {
-        std::cout << (i == floatRegister ? "\x1b[32m" : "\x1b[34m") << "Float Register " << (i + 1) << ": " << floatRegisters[i] << "\x1b[39m" << std::endl;
+        DebugLogging::ParsingOut << (i == floatRegister ? "\x1b[32m" : "\x1b[34m") << "Float Register " << (i + 1) << ": " << floatRegisters[i] << "\x1b[39m" << std::endl;
     }
 }
 
 void InterpreterContext::DumpBoolRegister(void) {
     for (size_t i = 0; i < boolRegisters.size(); ++i) {
-        std::cout << (i == boolRegister ? "\x1b[32m" : "\x1b[34m") << "Bool Register " << (i + 1) << ": " << (boolRegisters[i] ? "true" : "false") << "\x1b[39m" << std::endl;
+        DebugLogging::ParsingOut << (i == boolRegister ? "\x1b[32m" : "\x1b[34m") << "Bool Register " << (i + 1) << ": " << (boolRegisters[i] ? "true" : "false") << "\x1b[39m" << std::endl;
     }
 }
 

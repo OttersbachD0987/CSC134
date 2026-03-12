@@ -5,6 +5,8 @@
 #include <string_view>
 #include <vector>
 
+//#define STRING_UTILS_DEBUG_LOGGING 1
+
 /// @brief Tell if a string is a boolean value.
 /// @param a_string The string to check.
 /// @return Whether or not the string is a boolean value.

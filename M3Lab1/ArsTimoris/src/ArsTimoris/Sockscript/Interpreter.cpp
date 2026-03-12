@@ -11,7 +11,7 @@ Interpreter::Interpreter(void) {
 
 int32_t Interpreter::ParseIntExpression(GameState& a_gameState, InterpreterContext& a_context, std::string a_expression) {
     #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-    std::cout << "Parsing Int Expression: \n" << a_expression << std::endl;
+    DebugLogging::ParsingOut << "Parsing Int Expression: \n" << a_expression << std::endl;
     #endif
     InterpreterContext context = InterpreterContext();
 
@@ -24,7 +24,7 @@ int32_t Interpreter::ParseIntExpression(GameState& a_gameState, InterpreterConte
     #endif
     for (char character : a_expression) {
         #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-        std::cout << std::format("\x1b[1mINT_EX\x1b[22m Step {:0>4}) [{}] <{}> {}InString\x1b[39m {}Escaped\x1b[39m Register {:0>2}: [{:0>3}] {}", step++, ReaderModeDisplayName(context.mode.back()), OperatorEvaluationDisplayName(context.operatorEvaluation), (inString ? "\x1b[32m" : "\x1b[31m"), (escaped ? "\x1b[32m" : "\x1b[31m"), context.stringRegister, context.stringRegisters[context.stringRegister].size(), context.stringRegisters[context.stringRegister]) << std::endl;
+        DebugLogging::ParsingOut << std::format("\x1b[1mINT_EX\x1b[22m Step {:0>4}) [{}] <{}> {}InString\x1b[39m {}Escaped\x1b[39m Register {:0>2}: [{:0>3}] {}", step++, ReaderModeDisplayName(context.mode.back()), OperatorEvaluationDisplayName(context.operatorEvaluation), (inString ? "\x1b[32m" : "\x1b[31m"), (escaped ? "\x1b[32m" : "\x1b[31m"), context.stringRegister, context.stringRegisters[context.stringRegister].size(), context.stringRegisters[context.stringRegister]) << std::endl;
         #endif
         switch (context.mode.back()) {
             case ReaderMode::READ: {
@@ -45,7 +45,7 @@ int32_t Interpreter::ParseIntExpression(GameState& a_gameState, InterpreterConte
                     case '{':
                     case '}':
                         justOperated = false;
-                        std::cout << "[ERROR] Invalid characters." << std::endl;
+                        DebugLogging::ParsingOut << "[ERROR] Invalid characters." << std::endl;
                         break;
                     case '.':
                         justOperated = false;
@@ -203,7 +203,7 @@ int32_t Interpreter::ParseIntExpression(GameState& a_gameState, InterpreterConte
     }
 
     #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-    std::cout << std::format("\x1b[1mINT_EX\x1b[22m Step {:0>4}) [{}] {}InString\x1b[39m {}Escaped\x1b[39m Register {:0>2}: [{:0>3}] {}", step++, ReaderModeDisplayName(context.mode.back()), (inString ? "\x1b[32m" : "\x1b[31m"), (escaped ? "\x1b[32m" : "\x1b[31m"), context.stringRegister, context.stringRegisters[context.stringRegister].size(), context.stringRegisters[context.stringRegister]) << std::endl;
+    DebugLogging::ParsingOut << std::format("\x1b[1mINT_EX\x1b[22m Step {:0>4}) [{}] {}InString\x1b[39m {}Escaped\x1b[39m Register {:0>2}: [{:0>3}] {}", step++, ReaderModeDisplayName(context.mode.back()), (inString ? "\x1b[32m" : "\x1b[31m"), (escaped ? "\x1b[32m" : "\x1b[31m"), context.stringRegister, context.stringRegisters[context.stringRegister].size(), context.stringRegisters[context.stringRegister]) << std::endl;
     #endif
 
     if (context.stringRegisters[context.stringRegister] != "") {
@@ -233,7 +233,7 @@ int32_t Interpreter::ParseIntExpression(GameState& a_gameState, InterpreterConte
     }
 
     #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-    std::cout << "Returning: " << toReturn << std::endl;
+    DebugLogging::ParsingOut << "Returning: " << toReturn << std::endl;
     #endif
 
     return toReturn;
@@ -241,7 +241,7 @@ int32_t Interpreter::ParseIntExpression(GameState& a_gameState, InterpreterConte
 
 float Interpreter::ParseFloatExpression(GameState& a_gameState, InterpreterContext& a_context, std::string a_expression) {
     #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-    std::cout << "Parsing Float Expression: \n" << a_expression << std::endl;
+    DebugLogging::ParsingOut << "Parsing Float Expression: \n" << a_expression << std::endl;
     #endif
     InterpreterContext context = InterpreterContext();
 
@@ -255,7 +255,7 @@ float Interpreter::ParseFloatExpression(GameState& a_gameState, InterpreterConte
     #endif
     for (char character : a_expression) {
         #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-        std::cout << std::format("\x1b[1mFLT_EX\x1b[22m Step {:0>4}) [{}] <{}> {}InString\x1b[39m {}Escaped\x1b[39m Register {:0>2}: [{:0>3}] {}", step++, ReaderModeDisplayName(context.mode.back()), OperatorEvaluationDisplayName(context.operatorEvaluation), (inString ? "\x1b[32m" : "\x1b[31m"), (escaped ? "\x1b[32m" : "\x1b[31m"), context.stringRegister, context.stringRegisters[context.stringRegister].size(), context.stringRegisters[context.stringRegister]) << std::endl;
+        DebugLogging::ParsingOut << std::format("\x1b[1mFLT_EX\x1b[22m Step {:0>4}) [{}] <{}> {}InString\x1b[39m {}Escaped\x1b[39m Register {:0>2}: [{:0>3}] {}", step++, ReaderModeDisplayName(context.mode.back()), OperatorEvaluationDisplayName(context.operatorEvaluation), (inString ? "\x1b[32m" : "\x1b[31m"), (escaped ? "\x1b[32m" : "\x1b[31m"), context.stringRegister, context.stringRegisters[context.stringRegister].size(), context.stringRegisters[context.stringRegister]) << std::endl;
         #endif
         switch (context.mode.back()) {
             case ReaderMode::READ: {
@@ -276,7 +276,7 @@ float Interpreter::ParseFloatExpression(GameState& a_gameState, InterpreterConte
                     case '{':
                     case '}':
                         justOperated = false;
-                        std::cout << "[ERROR] Invalid characters." << std::endl;
+                        DebugLogging::ParsingOut << "[ERROR] Invalid characters." << std::endl;
                         break;
                     case '.':
                         justOperated = false;
@@ -435,7 +435,7 @@ float Interpreter::ParseFloatExpression(GameState& a_gameState, InterpreterConte
     }
 
     #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-    std::cout << std::format("\x1b[1mFLT_EX\x1b[22m Step {:0>4}) [{}] {}InString\x1b[39m {}Escaped\x1b[39m Register {:0>2}: [{:0>3}] {}", step++, ReaderModeDisplayName(context.mode.back()), (inString ? "\x1b[32m" : "\x1b[31m"), (escaped ? "\x1b[32m" : "\x1b[31m"), context.stringRegister, context.stringRegisters[context.stringRegister].size(), context.stringRegisters[context.stringRegister]) << std::endl;
+    DebugLogging::ParsingOut << std::format("\x1b[1mFLT_EX\x1b[22m Step {:0>4}) [{}] {}InString\x1b[39m {}Escaped\x1b[39m Register {:0>2}: [{:0>3}] {}", step++, ReaderModeDisplayName(context.mode.back()), (inString ? "\x1b[32m" : "\x1b[31m"), (escaped ? "\x1b[32m" : "\x1b[31m"), context.stringRegister, context.stringRegisters[context.stringRegister].size(), context.stringRegisters[context.stringRegister]) << std::endl;
     #endif
 
     if (context.stringRegisters[context.stringRegister] != "") {
@@ -465,7 +465,7 @@ float Interpreter::ParseFloatExpression(GameState& a_gameState, InterpreterConte
     }
 
     #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-    std::cout << "Returning: " << toReturn << std::endl;
+    DebugLogging::ParsingOut << "Returning: " << toReturn << std::endl;
     #endif
 
     return toReturn;
@@ -473,7 +473,7 @@ float Interpreter::ParseFloatExpression(GameState& a_gameState, InterpreterConte
 
 int32_t Interpreter::ParseBoolExpression(GameState& a_gameState, InterpreterContext& a_context, std::string a_expression) {
     #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-    std::cout << "Parsing Bool Expression: \n" << a_expression << std::endl;
+    DebugLogging::ParsingOut << "Parsing Bool Expression: \n" << a_expression << std::endl;
     #endif
     InterpreterContext context = InterpreterContext();
 
@@ -487,7 +487,7 @@ int32_t Interpreter::ParseBoolExpression(GameState& a_gameState, InterpreterCont
     #endif
     for (char character : a_expression) {
         #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-        std::cout << std::format("\x1b[1mBOO_EX\x1b[22m Step {:0>4}) [{}] <{}> {}InString\x1b[39m {}Escaped\x1b[39m Register {:0>2}: [{:0>3}] {}", step++, ReaderModeDisplayName(context.mode.back()), OperatorEvaluationDisplayName(context.operatorEvaluation), (inString ? "\x1b[32m" : "\x1b[31m"), (escaped ? "\x1b[32m" : "\x1b[31m"), context.stringRegister, context.stringRegisters[context.stringRegister].size(), context.stringRegisters[context.stringRegister]) << std::endl;
+        DebugLogging::ParsingOut << std::format("\x1b[1mBOO_EX\x1b[22m Step {:0>4}) [{}] <{}> {}InString\x1b[39m {}Escaped\x1b[39m Register {:0>2}: [{:0>3}] {}", step++, ReaderModeDisplayName(context.mode.back()), OperatorEvaluationDisplayName(context.operatorEvaluation), (inString ? "\x1b[32m" : "\x1b[31m"), (escaped ? "\x1b[32m" : "\x1b[31m"), context.stringRegister, context.stringRegisters[context.stringRegister].size(), context.stringRegisters[context.stringRegister]) << std::endl;
         #endif
         switch (context.mode.back()) {
             case ReaderMode::READ: {
@@ -508,7 +508,7 @@ int32_t Interpreter::ParseBoolExpression(GameState& a_gameState, InterpreterCont
                     case '{':
                     case '}':
                         justOperated = false;
-                        std::cout << "[ERROR] Invalid characters." << std::endl;
+                        DebugLogging::ParsingOut << "[ERROR] Invalid characters." << std::endl;
                         break;
                     case '.':
                         justOperated = false;
@@ -668,7 +668,7 @@ int32_t Interpreter::ParseBoolExpression(GameState& a_gameState, InterpreterCont
 
     if (context.stringRegisters[context.stringRegister] != "") {
         #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-        std::cout << std::format("\x1b[1mBOO_EX\x1b[22m Step {:0>4}) [{}] <{}> {}InString\x1b[39m {}Escaped\x1b[39m Register {:0>2}: [{:0>3}] {}", step++, ReaderModeDisplayName(context.mode.back()), OperatorEvaluationDisplayName(context.operatorEvaluation), (inString ? "\x1b[32m" : "\x1b[31m"), (escaped ? "\x1b[32m" : "\x1b[31m"), context.stringRegister, context.stringRegisters[context.stringRegister].size(), context.stringRegisters[context.stringRegister]) << std::endl;
+        DebugLogging::ParsingOut << std::format("\x1b[1mBOO_EX\x1b[22m Step {:0>4}) [{}] <{}> {}InString\x1b[39m {}Escaped\x1b[39m Register {:0>2}: [{:0>3}] {}", step++, ReaderModeDisplayName(context.mode.back()), OperatorEvaluationDisplayName(context.operatorEvaluation), (inString ? "\x1b[32m" : "\x1b[31m"), (escaped ? "\x1b[32m" : "\x1b[31m"), context.stringRegister, context.stringRegisters[context.stringRegister].size(), context.stringRegisters[context.stringRegister]) << std::endl;
         #endif
         switch (context.mode.back()) {
             case ReaderMode::READ:
@@ -682,7 +682,7 @@ int32_t Interpreter::ParseBoolExpression(GameState& a_gameState, InterpreterCont
 
     
     #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-    std::cout << "Returning: " << (context.boolRegisters[context.boolRegister] ? "true" : "false") << std::endl;
+    DebugLogging::ParsingOut << "Returning: " << (context.boolRegisters[context.boolRegister] ? "true" : "false") << std::endl;
     #endif
 
     return context.boolRegisters[context.boolRegister];
@@ -690,7 +690,7 @@ int32_t Interpreter::ParseBoolExpression(GameState& a_gameState, InterpreterCont
 
 std::string Interpreter::FormatString(GameState& a_gameState, InterpreterContext& a_context, std::string a_string) {
     #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-    std::cout << "Formatting String: \n" << a_string << std::endl;
+    DebugLogging::ParsingOut << "Formatting String: \n" << a_string << std::endl;
     #endif
     InterpreterContext context = InterpreterContext();
     std::string result = "";
@@ -704,9 +704,9 @@ std::string Interpreter::FormatString(GameState& a_gameState, InterpreterContext
     for (char character : a_string) {
         #ifdef SCRIPT_PARSER_DEBUG_LOGGING
         if (inString) {
-            std::cout << std::format("\x1b[1mSTR_FM\x1b[22m Step {:0>4}) [{}] <{}> {}InString\x1b[39m {}Escaped\x1b[39m [{:0>3}] {}", step++, ReaderModeDisplayName(context.mode.back()), OperatorEvaluationDisplayName(context.operatorEvaluation), (inString ? "\x1b[32m" : "\x1b[31m"), (escaped ? "\x1b[32m" : "\x1b[31m"), result.size(), result) << std::endl;
+            DebugLogging::ParsingOut << std::format("\x1b[1mSTR_FM\x1b[22m Step {:0>4}) [{}] <{}> {}InString\x1b[39m {}Escaped\x1b[39m [{:0>3}] {}", step++, ReaderModeDisplayName(context.mode.back()), OperatorEvaluationDisplayName(context.operatorEvaluation), (inString ? "\x1b[32m" : "\x1b[31m"), (escaped ? "\x1b[32m" : "\x1b[31m"), result.size(), result) << std::endl;
         } else {
-            std::cout << std::format("\x1b[1mSTR_FM\x1b[22m Step {:0>4}) [{}] <{}> {}InString\x1b[39m {}Escaped\x1b[39m Register {:0>2}: [{:0>3}] {}", step++, ReaderModeDisplayName(context.mode.back()), OperatorEvaluationDisplayName(context.operatorEvaluation), (inString ? "\x1b[32m" : "\x1b[31m"), (escaped ? "\x1b[32m" : "\x1b[31m"), context.stringRegister, context.stringRegisters[context.stringRegister].size(), context.stringRegisters[context.stringRegister]) << std::endl;
+            DebugLogging::ParsingOut << std::format("\x1b[1mSTR_FM\x1b[22m Step {:0>4}) [{}] <{}> {}InString\x1b[39m {}Escaped\x1b[39m Register {:0>2}: [{:0>3}] {}", step++, ReaderModeDisplayName(context.mode.back()), OperatorEvaluationDisplayName(context.operatorEvaluation), (inString ? "\x1b[32m" : "\x1b[31m"), (escaped ? "\x1b[32m" : "\x1b[31m"), context.stringRegister, context.stringRegisters[context.stringRegister].size(), context.stringRegisters[context.stringRegister]) << std::endl;
         }
         #endif
 
@@ -760,7 +760,7 @@ std::string Interpreter::FormatString(GameState& a_gameState, InterpreterContext
                                 inString = false;
                             }
                         } else {
-                            std::cout << "[ERROR] Invalid characters." << std::endl;
+                            DebugLogging::ParsingOut << "[ERROR] Invalid characters." << std::endl;
                         }
                         break;
                     case '}':
@@ -769,7 +769,7 @@ std::string Interpreter::FormatString(GameState& a_gameState, InterpreterContext
                                 result += character;
                                 escaped = false;
                             } else {
-                                std::cout << "[ERROR] Invalid characters." << std::endl;
+                                DebugLogging::ParsingOut << "[ERROR] Invalid characters." << std::endl;
                             }
                         } else {
                             inString = true;
@@ -927,28 +927,28 @@ void Interpreter::ParseRawType(GameState& a_gameState, InterpreterContext& a_con
 void Interpreter::ParseVariableName(GameState& a_gameState, InterpreterContext& a_context) {
     std::string varType = a_context.stringRegisters[a_context.stringRegister - 1];
     #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-    std::cout << std::format("Finished with the variable: {} {}", varType, a_context.stringRegisters[a_context.stringRegister]) << std::endl;
-    std::cout << std::format("\x1b[1mVariables\x1b[22m ({})", variables.size()) << std::endl;
+    DebugLogging::ParsingOut << std::format("Finished with the variable: {} {}", varType, a_context.stringRegisters[a_context.stringRegister]) << std::endl;
+    DebugLogging::ParsingOut << std::format("\x1b[1mVariables\x1b[22m ({})", variables.data.size()) << std::endl;
     //for (const std::pair<std::string, VariablePtr>& varPair : variables) {
-    //    std::cout << std::format("Variable: [{}] {:0>3}", varPair.first, varPair.second.size) << std::endl;
+    //    DebugLogging::ParsingOut << std::format("Variable: [{}] {:0>3}", varPair.first, varPair.second.size) << std::endl;
     //}
-    std::cout << "Prae Var Val" << std::endl;
+    DebugLogging::ParsingOut << "Prae Var Val" << std::endl;
     #endif
     if (varType == "int32") {
-        //std::cout << std::format("The value of {} is {}", a_context.stringRegisters[a_context.stringRegister], variables.Get<int32_t>(a_context.stringRegisters[a_context.stringRegister])) << std::endl;
+        //DebugLogging::ParsingOut << std::format("The value of {} is {}", a_context.stringRegisters[a_context.stringRegister], variables.Get<int32_t>(a_context.stringRegisters[a_context.stringRegister])) << std::endl;
         a_context.SetIntRegister(variables.Get<int32_t>(a_context.stringRegisters[a_context.stringRegister]));
     } else if (varType == "uint32") {
-        //std::cout << std::format("The value of {} is {}", a_context.stringRegisters[a_context.stringRegister], variables.Get<int32_t>(a_context.stringRegisters[a_context.stringRegister])) << std::endl;
+        //DebugLogging::ParsingOut << std::format("The value of {} is {}", a_context.stringRegisters[a_context.stringRegister], variables.Get<int32_t>(a_context.stringRegisters[a_context.stringRegister])) << std::endl;
         a_context.SetIntRegister(variables.Get<int32_t>(a_context.stringRegisters[a_context.stringRegister]));
     } else if (varType == "float") {
-        //std::cout << std::format("The value of {} is {}", a_context.stringRegisters[a_context.stringRegister], variables.Get<float>(a_context.stringRegisters[a_context.stringRegister])) << std::endl;
+        //DebugLogging::ParsingOut << std::format("The value of {} is {}", a_context.stringRegisters[a_context.stringRegister], variables.Get<float>(a_context.stringRegisters[a_context.stringRegister])) << std::endl;
         a_context.SetFloatRegister(variables.Get<float>(a_context.stringRegisters[a_context.stringRegister]));
     } else if (varType == "bool") {
-        //std::cout << std::format("The value of {} is {}", a_context.stringRegisters[a_context.stringRegister], variables.Get<bool>(a_context.stringRegisters[a_context.stringRegister])) << std::endl;
+        //DebugLogging::ParsingOut << std::format("The value of {} is {}", a_context.stringRegisters[a_context.stringRegister], variables.Get<bool>(a_context.stringRegisters[a_context.stringRegister])) << std::endl;
         a_context.SetBoolRegister(variables.Get<bool>(a_context.stringRegisters[a_context.stringRegister]));
     }
     #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-    std::cout << "Post Var Val" << std::endl;
+    DebugLogging::ParsingOut << "Post Var Val" << std::endl;
     #endif
 
     for (size_t i = 0; i < 2; ++i) {
@@ -985,7 +985,7 @@ void Interpreter::ParseObjectName(GameState& a_gameState, InterpreterContext& a_
 
 void Interpreter::ParseObjectMember(GameState& a_gameState, InterpreterContext& a_context) {
     #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-    std::cout << "Operating on member " << a_context.stringRegisters[a_context.stringRegister] << std::endl;
+    DebugLogging::ParsingOut << "Operating on member " << a_context.stringRegisters[a_context.stringRegister] << std::endl;
     #endif
     std::string object = a_context.stringRegisters[a_context.stringRegister - 1];
     if (object == "player") {
@@ -1031,7 +1031,7 @@ void Interpreter::ParseObjectMember(GameState& a_gameState, InterpreterContext& 
 
 void Interpreter::ParseObjectMethod(GameState& a_gameState, InterpreterContext& a_context) {
     #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-    std::cout << "Operating on function " << a_context.stringRegisters[a_context.stringRegister] << std::endl;
+    DebugLogging::ParsingOut << "Operating on function " << a_context.stringRegisters[a_context.stringRegister] << std::endl;
     #endif
     std::string object = a_context.stringRegisters[a_context.stringRegister - 1];
     a_context.mode.pop_back();
@@ -1132,7 +1132,13 @@ void Interpreter::ParseObjectMethodArgs(GameState& a_gameState, InterpreterConte
     std::vector<std::string> args = std::vector<std::string>();
     size_t argc = ParseFunctionArguments(a_context.stringRegisters[a_context.stringRegister], args);
     for (size_t i = 0; i < argc; ++i) {
+        #ifdef SCRIPT_PARSER_DEBUG_LOGGING
+        DebugLogging::ParsingOut << std::format("Prae Sanitize: \"{}\"", args[i]) << std::endl;
+        #endif
         SanitizeString(args[i]);
+        #ifdef SCRIPT_PARSER_DEBUG_LOGGING
+        DebugLogging::ParsingOut << std::format("Post Sanitize: \"{}\"", args[i]) << std::endl;
+        #endif
         #ifdef LEGACY_COMMA_REPLACEMENT
         int32_t index = 0;
         while ((index = args[i].find("<comma>", 0)) < args[i].size()) {
@@ -1149,52 +1155,52 @@ void Interpreter::ParseObjectMethodArgs(GameState& a_gameState, InterpreterConte
                 if (perk != Perks::SIZE) {
                     a_context.SetBoolRegister(a_gameState.player.perks.test((size_t)perk));
                 } else {
-                    std::cout << "[ERROR]: " << args[0] << " is not a valid perk id." << std::endl;
+                    DebugLogging::ParsingOut << "[ERROR]: " << args[0] << " is not a valid perk id." << std::endl;
                 }
             } else {
-                std::cout << "[ERROR]: player.HasPerk must have 1 argument, this call has " << argc << "." << std::endl;
+                DebugLogging::ParsingOut << "[ERROR]: player.HasPerk must have 1 argument, this call has " << argc << "." << std::endl;
             }
         } else if (method == "Hurt") {
             if (argc == 1) {
                 a_gameState.player.Hurt(ParseIntExpression(a_gameState, a_context, args[0]));
             } else {
-                std::cout << "[ERROR]: player.Hurt must have 1 argument, this call has " << argc << "." << std::endl;
+                DebugLogging::ParsingOut << "[ERROR]: player.Hurt must have 1 argument, this call has " << argc << "." << std::endl;
             }
         } else if (method == "Heal") {
             if (argc == 1) {
                 a_gameState.player.Heal(ParseIntExpression(a_gameState, a_context, args[0]));
             } else {
-                std::cout << "[ERROR]: player.Heal must have 1 argument, this call has " << argc << "." << std::endl;
+                DebugLogging::ParsingOut << "[ERROR]: player.Heal must have 1 argument, this call has " << argc << "." << std::endl;
             }
         } else if (method == "DrainMana") {
             if (argc == 1) {
                 a_gameState.player.DrainMana(ParseIntExpression(a_gameState, a_context, args[0]));
             } else {
-                std::cout << "[ERROR]: player.DrainMana must have 1 argument, this call has " << argc << "." << std::endl;
+                DebugLogging::ParsingOut << "[ERROR]: player.DrainMana must have 1 argument, this call has " << argc << "." << std::endl;
             }
         } else if (method == "RegainMana") {
             if (argc == 1) {
                 a_gameState.player.RegainMana(ParseIntExpression(a_gameState, a_context, args[0]));
             } else {
-                std::cout << "[ERROR]: player.RegainMana must have 1 argument, this call has " << argc << "." << std::endl;
+                DebugLogging::ParsingOut << "[ERROR]: player.RegainMana must have 1 argument, this call has " << argc << "." << std::endl;
             }
         } else if (method == "GetSkillModifier") {
             if (argc == 1) {
                 a_context.SetIntRegister(a_gameState.player.GetSkillModifier(FormatString(a_gameState, a_context, args[0])));
             } else {
-                std::cout << "[ERROR]: player.GetSkillModifier must have 1 argument, this call has " << argc << "." << std::endl;
+                DebugLogging::ParsingOut << "[ERROR]: player.GetSkillModifier must have 1 argument, this call has " << argc << "." << std::endl;
             }
         } else if (method == "SetSkillModifier") {
             if (argc == 2) {
                 a_context.SetIntRegister(a_gameState.player.SetSkillModifier(FormatString(a_gameState, a_context, args[0]), ParseIntExpression(a_gameState, a_context, args[1])));
             } else {
-                std::cout << "[ERROR]: player.SetSkillModifier must have 2 arguments, this call has " << argc << "." << std::endl;
+                DebugLogging::ParsingOut << "[ERROR]: player.SetSkillModifier must have 2 arguments, this call has " << argc << "." << std::endl;
             }
         } else if (method == "AddSkillModifier") {
             if (argc == 2) {
                 a_context.SetIntRegister(a_gameState.player.SetSkillModifier(FormatString(a_gameState, a_context, args[0]), ParseIntExpression(a_gameState, a_context, args[1])));
             } else {
-                std::cout << "[ERROR]: player.AddSkillModifier must have 2 arguments, this call has " << argc << "." << std::endl;
+                DebugLogging::ParsingOut << "[ERROR]: player.AddSkillModifier must have 2 arguments, this call has " << argc << "." << std::endl;
             }
         }
 
@@ -1208,19 +1214,19 @@ void Interpreter::ParseObjectMethodArgs(GameState& a_gameState, InterpreterConte
             if (argc == 2) {
                 a_context.SetFloatRegister(std::min<float>(ParseFloatExpression(a_gameState, a_context, args[0]), ParseFloatExpression(a_gameState, a_context, args[1])));
             } else {
-                std::cout << "[ERROR]: mathf.Min must have 2 arguments, this call has " << argc << "." << std::endl;
+                DebugLogging::ParsingOut << "[ERROR]: mathf.Min must have 2 arguments, this call has " << argc << "." << std::endl;
             }
         } else if (method == "Max") {
             if (argc == 2) {
                 a_context.SetFloatRegister(std::max<float>(ParseFloatExpression(a_gameState, a_context, args[0]), ParseFloatExpression(a_gameState, a_context, args[1])));
             } else {
-                std::cout << "[ERROR]: mathf.Max must have 2 arguments, this call has " << argc << "." << std::endl;
+                DebugLogging::ParsingOut << "[ERROR]: mathf.Max must have 2 arguments, this call has " << argc << "." << std::endl;
             }
         } else if (method == "Clamp") {
             if (argc == 3) {
                 a_context.SetFloatRegister(std::clamp<float>(ParseFloatExpression(a_gameState, a_context, args[0]), ParseFloatExpression(a_gameState, a_context, args[1]), ParseFloatExpression(a_gameState, a_context, args[2])));
             } else {
-                std::cout << "[ERROR]: mathf.Clamp must have 3 arguments, this call has " << argc << "." << std::endl;
+                DebugLogging::ParsingOut << "[ERROR]: mathf.Clamp must have 3 arguments, this call has " << argc << "." << std::endl;
             }
         }
 
@@ -1234,19 +1240,19 @@ void Interpreter::ParseObjectMethodArgs(GameState& a_gameState, InterpreterConte
             if (argc == 2) {
                 a_context.SetIntRegister(std::min<int32_t>(ParseIntExpression(a_gameState, a_context, args[0]), ParseIntExpression(a_gameState, a_context, args[1])));
             } else {
-                std::cout << "[ERROR]: mathi.Min must have 2 arguments, this call has " << argc << "." << std::endl;
+                DebugLogging::ParsingOut << "[ERROR]: mathi.Min must have 2 arguments, this call has " << argc << "." << std::endl;
             }
         } else if (method == "Max") {
             if (argc == 2) {
                 a_context.SetIntRegister(std::max<int32_t>(ParseIntExpression(a_gameState, a_context, args[0]), ParseIntExpression(a_gameState, a_context, args[1])));
             } else {
-                std::cout << "[ERROR]: mathi.Max must have 2 arguments, this call has " << argc << "." << std::endl;
+                DebugLogging::ParsingOut << "[ERROR]: mathi.Max must have 2 arguments, this call has " << argc << "." << std::endl;
             }
         } else if (method == "Clamp") {
             if (argc == 3) {
                 a_context.SetIntRegister(std::clamp<int32_t>(ParseIntExpression(a_gameState, a_context, args[0]), ParseIntExpression(a_gameState, a_context, args[1]), ParseIntExpression(a_gameState, a_context, args[2])));
             } else {
-                std::cout << "[ERROR]: mathi.Clamp must have 3 arguments, this call has " << argc << "." << std::endl;
+                DebugLogging::ParsingOut << "[ERROR]: mathi.Clamp must have 3 arguments, this call has " << argc << "." << std::endl;
             }
         }
 
@@ -1261,32 +1267,32 @@ void Interpreter::ParseObjectMethodArgs(GameState& a_gameState, InterpreterConte
                 int32_t minimum = ParseIntExpression(a_gameState, a_context, args[0]);
                 a_context.SetIntRegister(minimum + PERCENT_DISTRIBUTION(a_gameState.generator) * (ParseIntExpression(a_gameState, a_context, args[1]) - minimum));
             } else {
-                std::cout << "[ERROR]: random.RangeI must have 2 arguments, this call has " << argc << "." << std::endl;
+                DebugLogging::ParsingOut << "[ERROR]: random.RangeI must have 2 arguments, this call has " << argc << "." << std::endl;
             }
         } else if (method == "RangeF") {
             if (argc == 2) {
                 float minimum = ParseFloatExpression(a_gameState, a_context, args[0]);
                 a_context.SetFloatRegister(minimum + PERCENT_DISTRIBUTION(a_gameState.generator) * (ParseFloatExpression(a_gameState, a_context, args[1]) - minimum));
             } else {
-                std::cout << "[ERROR]: random.RangeF must have 2 arguments, this call has " << argc << "." << std::endl;
+                DebugLogging::ParsingOut << "[ERROR]: random.RangeF must have 2 arguments, this call has " << argc << "." << std::endl;
             }
         } else if (method == "RollDice") {
             if (argc == 2) {
                 int32_t count = ParseIntExpression(a_gameState, a_context, args[0]);
                 int32_t dice = ParseIntExpression(a_gameState, a_context, args[1]);
                 #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-                std::cout << std::format("{} & {}", args[0], args[1]) << std::endl;
-                std::cout << std::format("{}d{}", count, dice) << std::endl;
+                DebugLogging::ParsingOut << std::format("{} & {}", args[0], args[1]) << std::endl;
+                DebugLogging::ParsingOut << std::format("{}d{}", count, dice) << std::endl;
                 #endif
                 a_context.SetIntRegister(a_gameState.RollDice(count, dice));
             } else {
-                std::cout << "[ERROR]: random.RollDice must have 2 arguments, this call has " << argc << "." << std::endl;
+                DebugLogging::ParsingOut << "[ERROR]: random.RollDice must have 2 arguments, this call has " << argc << "." << std::endl;
             }
         } else if (method == "Random") {
             if (argc == 0) {
                 a_context.SetFloatRegister(PERCENT_DISTRIBUTION(a_gameState.generator));
             } else {
-                std::cout << "[ERROR]: random.Random must have 0 arguments, this call has " << argc << "." << std::endl;
+                DebugLogging::ParsingOut << "[ERROR]: random.Random must have 0 arguments, this call has " << argc << "." << std::endl;
             }
         }
 
@@ -1298,15 +1304,15 @@ void Interpreter::ParseObjectMethodArgs(GameState& a_gameState, InterpreterConte
     } else if (object == "console") {
         if (method == "Print") {
             if (argc == 1) {
-                std::cout << FormatString(a_gameState, a_context, args[0]);
+                DebugLogging::ParsingOut << FormatString(a_gameState, a_context, args[0]);
             } else {
-                std::cout << "[ERROR]: console.Print must have 1 argument, this call has " << argc << "." << std::endl;
+                DebugLogging::ParsingOut << "[ERROR]: console.Print must have 1 argument, this call has " << argc << "." << std::endl;
             }
         } else if (method == "EatInput") {
             if (argc == 0) {
                 EatInput();
             } else {
-                std::cout << "[ERROR]: console.Print must have 0 arguments, this call has " << argc << "." << std::endl;
+                DebugLogging::ParsingOut << "[ERROR]: console.Print must have 0 arguments, this call has " << argc << "." << std::endl;
             }
         }
 
@@ -1324,7 +1330,7 @@ void Interpreter::ParseObjectMethodArgs(GameState& a_gameState, InterpreterConte
                 std::vector<std::string> modifiers = std::vector<std::string>();
                 size_t modifierCount = SplitString(modifierTemplates, ":", modifiers);
                 #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-                std::cout << std::format("{}({}) = {}", entityTemplate, npcTemplate, modifierTemplates) << std::endl;
+                DebugLogging::ParsingOut << std::format("{}({}) = {}", entityTemplate, npcTemplate, modifierTemplates) << std::endl;
                 #endif
                 
                 NPCData npc = NPCData(GameData::ENTITY_TEMPLATES.at(entityTemplate), &GameData::NPC_TEMPLATES.at(npcTemplate));
@@ -1337,64 +1343,64 @@ void Interpreter::ParseObjectMethodArgs(GameState& a_gameState, InterpreterConte
                 std::string entityTemplate = FormatString(a_gameState, a_context, args[0]);
                 std::string npcTemplate = FormatString(a_gameState, a_context, args[1]);
                 #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-                std::cout << std::format("{}({})", entityTemplate, npcTemplate) << std::endl;
+                DebugLogging::ParsingOut << std::format("{}({})", entityTemplate, npcTemplate) << std::endl;
                 #endif
                 a_gameState.rooms[a_gameState.curRoom].inhabitants.push_back(NPCData(GameData::ENTITY_TEMPLATES.at(entityTemplate), &GameData::NPC_TEMPLATES.at(npcTemplate)));
             } else {
-                std::cout << "[ERROR]: room.AddInhabitant must have 3 arguments, this call has " << argc << "." << std::endl;
+                DebugLogging::ParsingOut << "[ERROR]: room.AddInhabitant must have 3 arguments, this call has " << argc << "." << std::endl;
             }
         } else if (method == "AddRoomAction") {
             if (argc == 1) {
                 std::string roomAction = FormatString(a_gameState, a_context, args[0]);
                 #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-                std::cout << roomAction << std::endl;
+                DebugLogging::ParsingOut << roomAction << std::endl;
                 #endif
                 a_gameState.rooms[a_gameState.curRoom].roomActions.push_back(GameData::ROOM_ACTIONS.at(roomAction));
             } else {
-                std::cout << "[ERROR]: room.AddRoomAction must have 1 argument, this call has " << argc << "." << std::endl;
+                DebugLogging::ParsingOut << "[ERROR]: room.AddRoomAction must have 1 argument, this call has " << argc << "." << std::endl;
             }
         } else if (method == "AddShop") {
             if (argc == 1) {
                 std::string name = FormatString(a_gameState, a_context, args[0]);
                 #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-                std::cout << name << std::endl;
+                DebugLogging::ParsingOut << name << std::endl;
                 #endif
                 a_gameState.rooms[a_gameState.curRoom].data.emplace("Shop", new ShopInstance());
                 GenerateShopInstance(a_gameState, GameData::SHOP_DATA.at(name), *(ShopInstance*)a_gameState.rooms[a_gameState.curRoom].data.at("Shop"));
                 a_gameState.rooms[a_gameState.curRoom].roomActions.push_back(GameData::ROOM_ACTIONS.at("Shop"));
             } else {
-                std::cout << "[ERROR]: room.AddShop must have 1 argument, this call has " << argc << "." << std::endl;
+                DebugLogging::ParsingOut << "[ERROR]: room.AddShop must have 1 argument, this call has " << argc << "." << std::endl;
             }
         } else if (method == "HasFlag") {
             if (argc == 1) {
                 std::string flag = FormatString(a_gameState, a_context, args[0]);
                 #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-                std::cout << flag << std::endl;
+                DebugLogging::ParsingOut << flag << std::endl;
                 #endif
                 a_context.SetBoolRegister(a_gameState.rooms[a_gameState.curRoom].flags.contains(flag));
             } else {
-                std::cout << "[ERROR]: room.HasFlag must have 1 argument, this call has " << argc << "." << std::endl;
+                DebugLogging::ParsingOut << "[ERROR]: room.HasFlag must have 1 argument, this call has " << argc << "." << std::endl;
             }
         } else if (method == "GetFlag") {
             if (argc == 1) {
                 std::string flag = FormatString(a_gameState, a_context, args[0]);
                 #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-                std::cout << flag << std::endl;
+                DebugLogging::ParsingOut << flag << std::endl;
                 #endif
                 a_context.SetIntRegister(a_gameState.rooms[a_gameState.curRoom].flags.at(flag));
             } else {
-                std::cout << "[ERROR]: room.GetFlag must have 1 argument, this call has " << argc << "." << std::endl;
+                DebugLogging::ParsingOut << "[ERROR]: room.GetFlag must have 1 argument, this call has " << argc << "." << std::endl;
             }
         } else if (method == "SetFlag") {
             if (argc == 2) {
                 std::string flag = FormatString(a_gameState, a_context, args[0]);
                 int32_t value = ParseIntExpression(a_gameState, a_context, args[1]);
                 #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-                std::cout << std::format("Setting flag {} to {}.", flag, value) << std::endl;
+                DebugLogging::ParsingOut << std::format("Setting flag {} to {}.", flag, value) << std::endl;
                 #endif
                 a_gameState.rooms[a_gameState.curRoom].flags.insert_or_assign(flag, value);
             } else {
-                std::cout << "[ERROR]: room.SetFlag must have 2 arguments, this call has " << argc << "." << std::endl;
+                DebugLogging::ParsingOut << "[ERROR]: room.SetFlag must have 2 arguments, this call has " << argc << "." << std::endl;
             }
         }
 

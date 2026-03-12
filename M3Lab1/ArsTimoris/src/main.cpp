@@ -11,15 +11,6 @@
 #include <ArsTimoris/Util/Input.hpp>
 #include <ArsTimoris/Util/Random.hpp>
 
-#pragma region Debug Flags
-//#define SCRIPT_PARSER_DEBUG_LOGGING 1
-//#define STRING_UTILS_DEBUG_LOGGING 1
-#pragma endregion
-
-#pragma region Compilation Flags
-//#define LEGACY_COMMA_REPLACEMENT 1
-#pragma endregion
-
 void PrintCombatNPCData(GameState& a_gameState, const NPCData& a_npc) {
     std::cout << a_npc.name<< "\n";
 
@@ -45,6 +36,7 @@ void PrintCombatNPCData(GameState& a_gameState, const NPCData& a_npc) {
 }
 
 int main(int argc, char** argv) {
+    DebugLogging::OpenParserLog(std::filesystem::current_path() / "Logs" / "ParserLog.txt");
     std::filesystem::path dataPath = std::filesystem::current_path().append("Assets").append("Data");
     //DataComponents::DataContainer container = DataComponents::ParseDataFile(std::filesystem::current_path().append("test.data"));
     //std::cout << std::format("Pre loading Starts ({})", dataPath.string()) << std::endl;
@@ -686,6 +678,8 @@ int main(int argc, char** argv) {
                 break;
         }
     }
+
+    DebugLogging::CloseParserLog();
 
     return 0;
 }

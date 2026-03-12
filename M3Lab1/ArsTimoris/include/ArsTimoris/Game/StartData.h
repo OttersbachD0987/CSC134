@@ -6,8 +6,6 @@
 #include <string>
 #include <filesystem>
 
-struct StartData;
-
 #include <ArsTimoris/Game/Entity/EntityTemplate.h>
 #include <ArsTimoris/Game/Inventory/ItemStack.h>
 #include <ArsTimoris/Game/Classes/ClassInstance.h>

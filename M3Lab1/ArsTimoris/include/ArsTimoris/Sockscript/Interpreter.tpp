@@ -4,6 +4,7 @@
 #include <ArsTimoris/Sockscript/Interpreter.h>
 #include <iostream>
 #include <format>
+#include <ArsTimoris/Util/DebugLogging.hpp>
 
 template <typename T>
 T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType, std::string a_statement) {
@@ -19,7 +20,7 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
     #endif
     for (char character : a_statement) {
         #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-        std::cout << std::format("\x1b[1mPARSER\x1b[22m Step {:0>4}) [{}] <{}> {}InString\x1b[39m {}Escaped\x1b[39m Register {:0>2}: [{:0>3}] {}", step++, ReaderModeDisplayName(context.mode.back()), OperatorEvaluationDisplayName(context.operatorEvaluation), (inString ? "\x1b[32m" : "\x1b[31m"), (escaped ? "\x1b[32m" : "\x1b[31m"), context.stringRegister, context.stringRegisters[context.stringRegister].size(), context.stringRegisters[context.stringRegister]) << std::endl;
+        DebugLogging::ParsingOut << std::format("\x1b[1mPARSER\x1b[22m Step {:0>4}) [{}] <{}> {}InString\x1b[39m {}Escaped\x1b[39m Register {:0>2}: [{:0>3}] {}", step++, ReaderModeDisplayName(context.mode.back()), OperatorEvaluationDisplayName(context.operatorEvaluation), (inString ? "\x1b[32m" : "\x1b[31m"), (escaped ? "\x1b[32m" : "\x1b[31m"), context.stringRegister, context.stringRegisters[context.stringRegister].size(), context.stringRegisters[context.stringRegister]) << std::endl;
         #endif
         switch (context.mode.back()) {
             case ReaderMode::READ: {
@@ -52,11 +53,11 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
                     }
                     case '{': {
                         #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-                        std::cout << "Bracket hit with: " << context.stringRegisters[context.stringRegister] << std::endl;
+                        DebugLogging::ParsingOut << "Bracket hit with: " << context.stringRegisters[context.stringRegister] << std::endl;
                         #endif
                         if (context.stringRegisters[context.stringRegister] == "else") {
                             #ifdef SCRIPT_PARSER_DEBUG_LOGGING
-                            std::cout << "Truism: <" << ifTrue.back().first << ", " << (ifTrue.back().second ? "true" : "false") << ">" << std::endl;
+                            DebugLogging::ParsingOut << "Truism: <" << ifTrue.back().first << ", " << (ifTrue.back().second ? "true" : "false") << ">" << std::endl;
                             #endif
                             if (ifTrue.back().second) {
                                 context.mode.push_back(ReaderMode::FALLTHROUGH);
@@ -125,7 +126,7 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
             case ReaderMode::VAR_VALUE: {
                 switch (character) {
                     case ';':
-                        std::cout << "[ERROR] Semicolon before variable expression provided." << std::endl;
+                        DebugLogging::ParsingOut << "[ERROR] Semicolon before variable expression provided." << std::endl;
                         break;
                     case '=': {
                         context.mode.pop_back();
@@ -182,15 +183,15 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
                                 //variables.data.emplace(varName, DataComponents::DataHolder(varName, DataComponents::DataType::FLOAT, (void*)(&value), sizeof(float)));
                             } else if (varType == "uint32") {
                                 int32_t value = ParseIntExpression(a_gameState, context, context.stringRegisters[context.stringRegister]);
-                                //std::cout << "Setting: " << varName << " : " << value << std::endl;
+                                //DebugLogging::ParsingOut << "Setting: " << varName << " : " << value << std::endl;
                                 variables.Set(varName, DataComponents::DataType::INT32, value, sizeof(int32_t));
-                                //std::cout << "Set: " << varName << " : " << value << std::endl;
-                                //std::cout << "Set: " << varName << " : " << variables.Get<int32_t>(varName) << std::endl;
+                                //DebugLogging::ParsingOut << "Set: " << varName << " : " << value << std::endl;
+                                //DebugLogging::ParsingOut << "Set: " << varName << " : " << variables.Get<int32_t>(varName) << std::endl;
                             } else if (varType == "bool") {
                                 bool value = ParseBoolExpression(a_gameState, context, context.stringRegisters[context.stringRegister]);
                                 variables.Set(varName, DataComponents::DataType::BOOL, value, sizeof(bool));
                             } else if (varType == "string") {
-                                std::cout << "String is not a supported data type." << std::endl;
+                                DebugLogging::ParsingOut << "String is not a supported data type." << std::endl;
                             }
 
                             //context.DumpStringRegister();

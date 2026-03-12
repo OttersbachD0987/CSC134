@@ -3,6 +3,9 @@
 #define ARS_TIMORIS__SOCKSCRIPT__INTERPRETER_H
 struct GameState;
 
+#define SCRIPT_PARSER_DEBUG_LOGGING 1
+//#define LEGACY_COMMA_REPLACEMENT 1
+
 #include <ArsTimoris/Sockscript/InterpreterContext.h>
 #include <ArsTimoris/DataComponents/DataContainer.h>
 
