@@ -348,7 +348,7 @@ int main(int argc, char** argv) {
                         for (size_t connectionIndex = 0; connectionIndex < room->connections.size();) {
                             std::cout << ++connectionIndex << ") [" << room->connections[connectionIndex - 1].destination  << "] \x1b[38;5;" << (gameState.rooms[room->connections[connectionIndex - 1].destination].initialized ? "8m" : "15m") << GameData::ROOM_DATA[gameState.rooms[room->connections[connectionIndex - 1].destination].roomID].roomName << "\x1b[39m\n";
                         }
-                        std::cout << "\nOption: ";
+                        std::cout << (room->connections.size() + 1) << ") Back\n\nOption: ";
 
                         SafeInput<uint32_t>(choice);
 
@@ -357,6 +357,8 @@ int main(int argc, char** argv) {
                                 room->connections[choice].Passes(gameState);
                                 gameState.curRoom = room->connections[choice].destination;
                             }
+                            gameState.menu = Menu::NONE;
+                        } else if (choice == room->connections.size()) {
                             gameState.menu = Menu::NONE;
                         }
                         break;
