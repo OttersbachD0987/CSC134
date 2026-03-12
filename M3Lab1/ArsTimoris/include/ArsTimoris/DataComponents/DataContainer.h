@@ -84,4 +84,7 @@ namespace DataComponents {
 
     DataContainer ParseDataFile(std::filesystem::path a_path);
 }
+
+#include <ArsTimoris/DataComponents/DataContainer.tpp>
+
 #endif

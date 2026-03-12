@@ -11,11 +11,24 @@ To build Ars Timoris use the following commands:
 ### Linux (GCC/G++)
 
 ```bash
-g++ -std=c++23 -fpermissive main.cpp
+export CXX=g++
+export CC=gcc
+
+cmake --workflow --preset x64-all
 ```
 
 ### Windows & MacOS (Clang)
 
+If you are using Visual Studio Build Tools then you must run the following to get access to clang:
+
 ```powershell
-cl /std:c++20 /EHsc main.cpp
+set VCVARS="C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+"%VCVARS%"
+```
+
+```powershell
+set CXX=cl
+set CC=cl
+
+cmake --workflow --preset x64-all
 ```

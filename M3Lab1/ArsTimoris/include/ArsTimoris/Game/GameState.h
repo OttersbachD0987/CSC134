@@ -1,0 +1,73 @@
+#pragma once
+#ifndef ARS_TIMORIS__GAME__GAME_STATE_H
+#define ARS_TIMORIS__GAME__GAME_STATE_H
+#include <vector>
+#include <random>
+
+#pragma region Screen and Menu
+enum class Screen {
+    TITLE,
+    GAME_SELECT,
+    GAME,
+    GAME_OVER,
+};
+
+enum class Menu {
+    PAUSE,
+    MOVING,
+    ROOM_ACTIONS,
+    COMBAT,
+    STATS,
+    INVENTORY,
+    LEVEL_UP,
+    NONE
+};
+#pragma endregion
+
+/// @struct DebugData
+/// @brief A struct containing all the debug data for the player.
+struct DebugData {
+public:
+    bool enabled = false;  //< If the debug mode is enabled.
+    bool noFights = false; //< The No Fights debug flag to avoid starting the combat menu.
+};
+
+struct GameState;
+
+#include <ArsTimoris/Game/StartData.h>
+#include <ArsTimoris/Game/Entity/PlayerData.h>
+#include <ArsTimoris/Game/Map/RoomInstance.h>
+#include <ArsTimoris/Sockscript/Interpreter.h>
+
+struct GameState {
+public:
+    static std::vector<StartData> Starts;
+
+    DebugData debug = DebugData();
+
+    bool running = true;
+    Screen screen;
+    Menu menu;
+
+    size_t usedRooms;
+    size_t curRoom;
+    size_t start;
+    std::vector<RoomInstance> rooms;
+    PlayerData player;
+
+    std::mt19937 generator;
+    Interpreter interpreter;
+
+    GameState(std::mt19937 a_generator, const Interpreter& a_interpreter);
+
+    static void DisplayStarts();
+
+    void Start(size_t a_start);
+
+    size_t PushBackRoom(size_t a_index);
+
+    int32_t RollDice(size_t a_amount, size_t a_die);
+};
+
+#include <ArsTimoris/Game/GameData.h>
+#endif

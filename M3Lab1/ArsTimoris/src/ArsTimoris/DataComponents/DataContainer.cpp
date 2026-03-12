@@ -1,4 +1,4 @@
-#include "DataContainer.h"
+#include <ArsTimoris/DataComponents/DataContainer.h>
 
 namespace DataComponents {
     DataHolder::DataHolder(std::string_view a_key, const DataType& a_dataType, const std::any a_data, size_t a_size) {
@@ -19,11 +19,6 @@ namespace DataComponents {
     
     DataContainer::DataContainer(void) {
         this->data = std::unordered_map<std::string, DataHolder>();
-    }
-
-    template<typename T>
-    T DataContainer::Get(const std::string& a_key) {
-        return std::any_cast<T>(data.at(a_key).data);
     }
 
     void DataContainer::Set(const std::string& a_key, DataType a_dataType, const std::any a_data, size_t a_size) {
