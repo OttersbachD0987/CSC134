@@ -32,6 +32,9 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
                         if (context.stringRegisters[context.stringRegister] == "return") {
                             context.stringRegisters[context.stringRegister] = "";
                             context.mode.push_back(ReaderMode::RET_EXPR);
+                        } else if (context.stringRegisters[context.stringRegister] == "delete") {
+                            context.stringRegisters[context.stringRegister] = "";
+                            context.mode.push_back(ReaderMode::DEL_EXPR);
                         }
                         break;
                     }
@@ -268,6 +271,55 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
                                     return (T)(0);
                                 }
                             }
+                        }
+                        break;
+                    }
+                    default:
+                        context.stringRegisters[context.stringRegister] += character;
+                        escaped = false;
+                        break;
+                }
+                break;
+            }
+            case ReaderMode::DEL_EXPR: {
+                switch (character) {
+                    case ' ':
+                        context.stringRegisters[context.stringRegister] += character;
+                        escaped = false;
+                    case '\n':
+                    case '\t':
+                    case '\v':
+                        break;
+                    case '"':
+                        if (inString) {
+                            if (escaped) {
+                                context.stringRegisters[context.stringRegister] += character;
+                            } else {
+                                inString = false;
+                            }
+                            escaped = false;
+                        } else {
+                            inString = true;
+                        }
+                        break;
+                    case '\\':
+                        if (inString) {
+                            if (escaped) {
+                                context.stringRegisters[context.stringRegister] += character;
+                                escaped = false;
+                            } else {
+                                escaped = true;
+                            }
+                        }
+                        break;
+                    case ';': {
+                        if (inString) { 
+                            context.stringRegisters[context.stringRegister] += character;
+                            escaped = false;
+                        } else {
+                            context.mode.pop_back();
+                            std::string value = FormatString(a_gameState, context, context.stringRegisters[context.stringRegister]);
+                            variables.Del(value);
                         }
                         break;
                     }

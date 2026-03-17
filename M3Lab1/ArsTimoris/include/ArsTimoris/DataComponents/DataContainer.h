@@ -73,6 +73,8 @@ namespace DataComponents {
         T Get(const std::string& a_key);
 
         void Set(const std::string& a_key, DataType a_dataType, const std::any a_data, size_t a_size);
+
+        void Del(const std::string& a_key);
     };
 
     enum class ReaderMode {

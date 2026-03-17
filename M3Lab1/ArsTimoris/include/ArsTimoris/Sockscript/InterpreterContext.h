@@ -11,6 +11,7 @@ enum struct ReaderMode {
     VAR_VALUE,
     VAR_EXPR,
     RET_EXPR,
+    DEL_EXPR,
     OBJECT,
     EXPRESSION,
     ARGS,

@@ -59,6 +59,7 @@ CONTINUE;
         if (player.curMana == player.maxMana) {
             console.Print("Your mana is fully replinished.\n");
         } end;
+        delete manaGain;
     } end;
     end;
 }}
@@ -87,6 +88,7 @@ CONTINUE;
         if (player.curHP == player.maxHP) {
             console.Print("Your health is fully replinished.\n");
         } end;
+        delete hpGain;
     } end;
     end;
 }}
@@ -152,6 +154,7 @@ CONTINUE;
     } end;
 
     console.Print("There is a training dummy in the middle of the room... You feel better at something.\n");
+    delete roll;
     end;
 }}
 

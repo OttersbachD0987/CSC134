@@ -17,6 +17,8 @@ std::string ReaderModeDisplayName(ReaderMode a_mode) {
             return "VAR_EXP";
         case ReaderMode::RET_EXPR:
             return "RET_EXP";
+        case ReaderMode::DEL_EXPR:
+            return "DEL_EXP";
         case ReaderMode::OBJECT:
             return "OBJECTS";
         case ReaderMode::EXPRESSION:

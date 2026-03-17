@@ -25,6 +25,10 @@ namespace DataComponents {
         data.emplace(a_key, DataHolder(a_key, a_dataType, a_data, a_size));
     }
 
+    void DataContainer::Del(const std::string& a_key) {
+        data.erase(a_key);
+    }
+
     DataContainer ParseDataFile(std::filesystem::path a_path) {
         std::ifstream reader = std::ifstream(a_path.string());
         DataContainer container = DataContainer();
