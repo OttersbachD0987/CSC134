@@ -182,15 +182,7 @@ std::vector<StartData> LoadStartData(std::filesystem::path a_path) {
                         HARD_HITTER
                         HORDE_SLAYER
                     */
-                    if (stringStorage == "INSIGHT") {
-                        perks.push_back((size_t)Perks::INSIGHT);
-                    } else if (stringStorage == "ARCANE_EYES") {
-                        perks.push_back((size_t)Perks::ARCANE_EYES);
-                    } else if (stringStorage == "HARD_HITTER") {
-                        perks.push_back((size_t)Perks::HARD_HITTER);
-                    } else if (stringStorage == "HORDE_SLAYER") {
-                        perks.push_back((size_t)Perks::HORDE_SLAYER);
-                    }
+                    perks.push_back((size_t)PerkFromName(stringStorage))
                     mode = 1;
                     reader.getline(buffer, 256);
                 }
