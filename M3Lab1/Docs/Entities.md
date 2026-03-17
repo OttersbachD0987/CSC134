@@ -1,5 +1,7 @@
 # Entities
 
+## Format
+
 An entity entry has the following format:
 
 ```nohighlight
@@ -33,3 +35,29 @@ There can be any number of `{SKILL_NAME}:{SKILL_VALUE},` before the `END:` for t
 There can be any number of `{ACTION_NAME},` before the `END,` for the actions.
 
 The file should always end with a `FINAL` delim.
+
+## Example
+
+### entities.data
+
+```nohighlight
+Goblin
+
+32;0;0;6;
+
+END:
+
+END,
+
+CONTINUE
+
+Revenant
+
+80;60;8;10;
+
+END:
+
+END,
+
+FINAL
+```
