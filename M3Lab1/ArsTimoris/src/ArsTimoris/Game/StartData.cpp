@@ -182,7 +182,7 @@ std::vector<StartData> LoadStartData(std::filesystem::path a_path) {
                         HARD_HITTER
                         HORDE_SLAYER
                     */
-                    perks.push_back((size_t)PerkFromName(stringStorage))
+                    perks.push_back((size_t)PerkFromName(stringStorage));
                     mode = 1;
                     reader.getline(buffer, 256);
                 }

@@ -30,6 +30,8 @@ END,
 {DELIM}
 ```
 
+***
+
 Name          | Value   | Description
 :-------------|:-------:|:-----------
 NAME          | String  | The name of the start.
@@ -52,6 +54,8 @@ START_ROOM_ID | Integer | The id of the room the player starts in.
 XP            | Integer | The player's starting XP.
 GOLD          | Integer | The player's starting Gold.
 DELIM         | String  | CONTINUE if there is another entry in the file, FINAL to finish the parsing.
+
+***
 
 There can be any number of `{SKILL_NAME}:{SKILL_VALUE},` before the `END:` for the skills.
 

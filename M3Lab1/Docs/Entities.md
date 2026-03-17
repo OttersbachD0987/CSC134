@@ -18,6 +18,8 @@ END,
 {DELIM}
 ```
 
+***
+
 Name        | Value   | Description
 :-----------|:-------:|:-----------
 NAME        | String  | The name of the entity.
@@ -29,6 +31,8 @@ SKILL_NAME  | String  | The name of the skill.
 SKILL_VALUE | Integer | The level in the skill.
 ACTION_NAME | String  | The name of the action.
 DELIM       | String  | CONTINUE if there is another entry in the file, FINAL to finish the parsing.
+
+***
 
 There can be any number of `{SKILL_NAME}:{SKILL_VALUE},` before the `END:` for the skills.
 
