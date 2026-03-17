@@ -68,103 +68,13 @@ int main(int argc, char** argv) {
     //    std::cout << "====================" << std::endl;
     //}
 
-    std::function<size_t(const RoomData&)> GetRandomRoom = [&gameState](const RoomData& a_roomData) {
-        size_t maximum = 0;
-        size_t weight = 0;
-        std::vector<int64_t> weights = std::vector<int64_t>();
-
-        for (const RoomData& roomData : GameData::ROOM_DATA) {
-            if (roomData.weight != nullptr && (weight = roomData.weight(gameState, a_roomData)) > 0) {
-                maximum += weight;
-                weights.push_back(weight);
-            } else {
-                weights.push_back(-1);
-            }
-        }
-
-        int64_t choice = static_cast<int64_t>(PERCENT_DISTRIBUTION(gameState.generator) * maximum);
-
-        for (size_t i = 0; i < GameData::ROOM_DATA.size(); ++i) {
-            if (weights[i] != -1 && (choice -= weights[i]) <= 0) {
-                return i;
-            }
-        }
-
-        return (size_t)0;
-    };
-
-    std::function<size_t(void)> GetRandomEncounter = [&gameState]() {
-        size_t maximum = 0;
-        size_t weight = 0;
-        std::vector<int64_t> weights = std::vector<int64_t>();
-
-        for (Encounter encounter : GameData::ENCOUNTERS) {
-            if (encounter.weight != "{}" && (weight = gameState.interpreter.ParseStatement<int32_t>(gameState, RegisterType::INT, encounter.weight)) > 0) {
-                maximum += weight;
-                weights.push_back(weight);
-                //std::cout << std::format("Encounter {:0>2} {:0>4}", weights.size(), weight) << std::endl;
-            } else {
-                weights.push_back(-1);
-                //std::cout << std::format("Encounter {:0>2} {:0>4}", weights.size(), 0) << std::endl;
-            }
-        }
-
-        int64_t choice = static_cast<int64_t>(PERCENT_DISTRIBUTION(gameState.generator) * maximum);
-
-        for (size_t i = 0; i < GameData::ENCOUNTERS.size(); ++i) {
-            if (weights[i] != -1 && (choice -= weights[i]) <= 0) {
-                return i;
-            }
-        }
-
-        return (size_t)0;
-    };
-
-    std::function<void(RoomInstance* const)> InitializeRoom = [&GetRandomRoom, &gameState](RoomInstance* const a_roomInstance) {
-        a_roomInstance->initialized = true;
-        std::vector<ConnectionInstance> newConnections = a_roomInstance->connections;
-        size_t newRoomThing = 0;
-        const RoomData& roomType = GameData::ROOM_DATA[a_roomInstance->roomID];
-        size_t roomIndex = a_roomInstance->roomIndex;
-        size_t newRoomCount = roomType.minNew + PERCENT_DISTRIBUTION(gameState.generator) * (roomType.maxNew - roomType.minNew);
-        for (int i = 0; i < std::min<int32_t>(roomType.minExisting + PERCENT_DISTRIBUTION(gameState.generator) * (roomType.maxExisting - roomType.minExisting), gameState.usedRooms); ++i) {
-            newConnections.push_back(
-                ConnectionInstance {
-                    (newRoomThing = size_t(PERCENT_DISTRIBUTION(gameState.generator) * gameState.usedRooms)),
-                    GameData::ROOM_DATA[gameState.rooms[newRoomThing].roomID].toConnection,
-                    roomType.fromConnection
-                }
-            );
-        }
-        for (int i = 0; i < newRoomCount; ++i) {
-            newConnections.push_back(
-                ConnectionInstance {
-                    (newRoomThing = gameState.PushBackRoom(GetRandomRoom(roomType))),
-                    GameData::ROOM_DATA[gameState.rooms[newRoomThing].roomID].toConnection,
-                    roomType.fromConnection
-                }
-            );
-
-            if (GameData::ROOM_DATA[gameState.rooms[newRoomThing].roomID].backlink) {
-                gameState.rooms[newRoomThing].connections.push_back(
-                    ConnectionInstance {
-                        roomIndex,
-                        ConnectionTest(),
-                        ConnectionTest()
-                    }
-                );
-            }
-        }
-        gameState.rooms[roomIndex].connections = newConnections;
-    };
-
     RoomInstance* room = nullptr;
     uint32_t choice;
     size_t encounter;
     bool runEncounter = false;
     while (gameState.running) {
         switch (gameState.screen) {
-            case Screen::TITLE:
+            case Screen::TITLE: {
                 std::cout << "-------------------------------\n      >>> Ars Timoris <<<\n-------------------------------\n1) New Game\n2) Quit\n------------------------------\n\nOption: ";
                 SafeInput<uint32_t>(choice);
                 switch (choice) {
@@ -176,7 +86,8 @@ int main(int argc, char** argv) {
                         break;
                 }
                 break;
-            case Screen::GAME_SELECT:
+            }
+            case Screen::GAME_SELECT: {
                 GameState::DisplayStarts();
                 
                 std::cout << "\nOption: ";
@@ -188,12 +99,13 @@ int main(int argc, char** argv) {
                     gameState.Start(choice);
                 }
                 break;
-            case Screen::GAME:
+            }
+            case Screen::GAME: {
                 switch (gameState.menu) {
                     case Menu::NONE: {
                         if (!gameState.rooms[gameState.curRoom].initialized) {
-                            InitializeRoom(&gameState.rooms[gameState.curRoom]);
-                            encounter = GetRandomEncounter();
+                            gameState.InitializeRoom(&gameState.rooms[gameState.curRoom]);
+                            encounter = gameState.GetRandomEncounter();
                             if (GameData::ENCOUNTERS[encounter].event != "{}") {
                                 runEncounter = true;
                             }
@@ -464,7 +376,7 @@ int main(int argc, char** argv) {
                         }
                         break;
                     }
-                    case Menu::INVENTORY:
+                    case Menu::INVENTORY: {
                         std::cout << "-------------------------------\nInventory:\n";
                         for (size_t inventoryItem = 0; inventoryItem < gameState.player.items.size();) {
                             std::cout << ++inventoryItem << ") [" << (gameState.player.equipped[inventoryItem - 1] ? 'X' : ' ') << "] " << GameData::ITEM_DATA[gameState.player.items[inventoryItem - 1].itemID].name << " x" << gameState.player.items[inventoryItem - 1].stackSize << "/" << GameData::ITEM_DATA[gameState.player.items[inventoryItem - 1].itemID].maxStack << "\n -" << GameData::ITEM_DATA[gameState.player.items[inventoryItem - 1].itemID].description << "\n";
@@ -503,7 +415,8 @@ int main(int argc, char** argv) {
                             gameState.menu = Menu::NONE;
                         }
                         break;
-                    case Menu::COMBAT:
+                    }
+                    case Menu::COMBAT: {
                         room = &gameState.rooms[gameState.curRoom];
                         if (room->inhabitants.size() > 0) {
                             bool enemiesGo = true;
@@ -606,7 +519,9 @@ int main(int argc, char** argv) {
                         break;
                 }
                 break;
-            case Screen::GAME_OVER:
+                }
+            }
+            case Screen::GAME_OVER: {
                 room = &gameState.rooms[gameState.curRoom];
                 const RoomData& roomType = GameData::ROOM_DATA[room->roomID];
                 std::cout 
@@ -676,6 +591,7 @@ int main(int argc, char** argv) {
                         break;
                 }
                 break;
+            }
         }
     }
 

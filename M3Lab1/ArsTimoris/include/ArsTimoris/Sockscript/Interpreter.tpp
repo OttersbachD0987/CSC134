@@ -112,32 +112,36 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
                     case ' ':
                     case '\n':
                     case '\t':
-                    case '\v':
+                    case '\v': {
                         break;
+                    }
                     case '>': {
                         context.mode.pop_back();
                         context.mode.push_back(ReaderMode::VAR_VALUE);
                         context.stringRegister += 1;
                         break;
                     }
-                    default:
+                    default: {
                         context.stringRegisters[context.stringRegister] += character;
                         break;
+                    }
                 }
                 break;
             }
             case ReaderMode::VAR_VALUE: {
                 switch (character) {
-                    case ';':
+                    case ';': {
                         DebugLogging::ParsingOut << "[ERROR] Semicolon before variable expression provided." << std::endl;
                         break;
+                    }
                     case '=': {
                         context.mode.pop_back();
                         context.mode.push_back(ReaderMode::VAR_EXPR);
                         break;
                     }
-                    default:
+                    default: {
                         break;
+                    }
                 }
                 break;
             }
@@ -150,7 +154,7 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
                     case '\t':
                     case '\v':
                         break;
-                    case '"':
+                    case '"': {
                         if (inString) {
                             if (escaped) {
                                 context.stringRegisters[context.stringRegister] += character;
@@ -162,7 +166,8 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
                             inString = true;
                         }
                         break;
-                    case '\\':
+                    }
+                    case '\\': {
                         if (inString) {
                             if (escaped) {
                                 context.stringRegisters[context.stringRegister] += character;
@@ -172,6 +177,7 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
                             }
                         }
                         break;
+                    }
                     case ';': {
                         if (inString) { 
                             context.stringRegisters[context.stringRegister] += character;
@@ -206,10 +212,11 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
                         }
                         break;
                     }
-                    default:
+                    default: {
                         context.stringRegisters[context.stringRegister] += character;
                         escaped = false;
                         break;
+                    }
                 }
                 break;
             }
@@ -222,7 +229,7 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
                     case '\t':
                     case '\v':
                         break;
-                    case '"':
+                    case '"': {
                         if (inString) {
                             if (escaped) {
                                 context.stringRegisters[context.stringRegister] += character;
@@ -234,7 +241,8 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
                             inString = true;
                         }
                         break;
-                    case '\\':
+                    }
+                    case '\\': {
                         if (inString) {
                             if (escaped) {
                                 context.stringRegisters[context.stringRegister] += character;
@@ -244,6 +252,7 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
                             }
                         }
                         break;
+                    }
                     case ';': {
                         if (inString) { 
                             context.stringRegisters[context.stringRegister] += character;
@@ -274,10 +283,11 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
                         }
                         break;
                     }
-                    default:
+                    default: {
                         context.stringRegisters[context.stringRegister] += character;
                         escaped = false;
                         break;
+                    }
                 }
                 break;
             }
@@ -290,7 +300,7 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
                     case '\t':
                     case '\v':
                         break;
-                    case '"':
+                    case '"': {
                         if (inString) {
                             if (escaped) {
                                 context.stringRegisters[context.stringRegister] += character;
@@ -302,7 +312,8 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
                             inString = true;
                         }
                         break;
-                    case '\\':
+                    }
+                    case '\\': {
                         if (inString) {
                             if (escaped) {
                                 context.stringRegisters[context.stringRegister] += character;
@@ -312,6 +323,7 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
                             }
                         }
                         break;
+                    }
                     case ';': {
                         if (inString) { 
                             context.stringRegisters[context.stringRegister] += character;
@@ -323,10 +335,11 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
                         }
                         break;
                     }
-                    default:
+                    default: {
                         context.stringRegisters[context.stringRegister] += character;
                         escaped = false;
                         break;
+                    }
                 }
                 break;
             }
@@ -344,9 +357,10 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
                         ParseObjectMethod(a_gameState, context);
                         break;
                     }
-                    default:
+                    default: {
                         context.stringRegisters[context.stringRegister] += character;
                         break;
+                    }
                 }
                 break;
             }
@@ -359,7 +373,7 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
                     case '\t':
                     case '\v':
                         break;
-                    case '"':
+                    case '"': {
                         context.stringRegisters[context.stringRegister] += character;
                         if (inString) {
                             if (!escaped) {
@@ -370,7 +384,8 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
                             inString = true;
                         }
                         break;
-                    case '\\':
+                    }
+                    case '\\': {
                         if (inString) {
                             if (escaped) {
                                 context.stringRegisters[context.stringRegister] += character;
@@ -380,13 +395,15 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
                             }
                         }
                         break;
-                    case 'n':
+                    }
+                    case 'n': {
                         if (inString && escaped) {
                             context.stringRegisters[context.stringRegister] += "\\";
                         }
                         context.stringRegisters[context.stringRegister] += character;
                         escaped = false;
                         break;
+                    }
                     case '(': {
                         if (!inString) {
                             ++innerLevel;
@@ -410,10 +427,11 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
                         }
                         break;
                     }
-                    default:
+                    default: {
                         context.stringRegisters[context.stringRegister] += character;
                         escaped = false;
                         break;
+                    }
                 }
                 break;
             }
@@ -422,13 +440,15 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
                     case ' ':
                     case '\n':
                     case '\t':
-                    case '\v':
+                    case '\v': {
                         context.stringRegisters[context.stringRegister] += character;
                         break;
-                    case '(':
+                    }
+                    case '(': {
                         embedLevel += 1;
                         context.stringRegisters[context.stringRegister] += character;
                         break;
+                    }
                     case ')': {
                         if (embedLevel-- <= 0) {
                             ifTrue.push_back(std::pair<int32_t, bool>(context.currentLevel, ParseBoolExpression(a_gameState, context, context.stringRegisters[context.stringRegister])));
@@ -442,30 +462,34 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
                         }
                         break;
                     }
-                    default:
+                    default: {
                         context.stringRegisters[context.stringRegister] += character;
                         break;
+                    }
                 }
                 break;
             }
             case ReaderMode::FALLTHROUGH: {
                 switch (character) {
-                    case '\\':
+                    case '\\': {
                         escaped = !escaped;
                         break;
-                    case '"':
+                    }
+                    case '"': {
                         if (!escaped) {
                             inString = !inString;
                         }
                         escaped = false;
                         break;
-                    case '{':
+                    }
+                    case '{': {
                         if (!inString && !escaped) {
                             ++context.currentLevel;
                         }
                         escaped = false;
                         break;
-                    case '}':
+                    }
+                    case '}': {
                         if (!inString && !escaped) {
                             --context.currentLevel;
                             if (context.currentLevel == context.targetLevel) {
@@ -474,9 +498,11 @@ T Interpreter::ParseStatement(GameState& a_gameState, RegisterType a_returnType,
                         }
                         escaped = false;
                         break;
-                    default:
+                    }
+                    default: {
                         escaped = false;
                         break;
+                    }
                 }
                 break;
             }

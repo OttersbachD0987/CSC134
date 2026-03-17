@@ -67,6 +67,12 @@ public:
     size_t PushBackRoom(size_t a_index);
 
     int32_t RollDice(size_t a_amount, size_t a_die);
+
+    size_t GetRandomRoom(const RoomData& a_roomData);
+
+    size_t GetRandomEncounter(void);
+
+    void InitializeRoom(RoomInstance* const a_roomInstance);
 };
 
 #include <ArsTimoris/Game/GameData.h>

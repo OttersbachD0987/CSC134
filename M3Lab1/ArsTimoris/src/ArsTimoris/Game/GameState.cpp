@@ -54,4 +54,94 @@ int32_t GameState::RollDice(size_t a_amount, size_t a_die) {
     return total;
 }
 
+size_t GameState::GetRandomRoom(const RoomData& a_roomData) {
+    size_t maximum = 0;
+    size_t weight = 0;
+    std::vector<int64_t> weights = std::vector<int64_t>();
+
+    for (const RoomData& roomData : GameData::ROOM_DATA) {
+        if (roomData.weight != nullptr && (weight = roomData.weight(*this, a_roomData)) > 0) {
+            maximum += weight;
+            weights.push_back(weight);
+        } else {
+            weights.push_back(-1);
+        }
+    }
+
+    int64_t choice = static_cast<int64_t>(PERCENT_DISTRIBUTION(generator) * maximum);
+
+    for (size_t i = 0; i < GameData::ROOM_DATA.size(); ++i) {
+        if (weights[i] != -1 && (choice -= weights[i]) <= 0) {
+            return i;
+        }
+    }
+
+    return (size_t)0;
+};
+
+size_t GameState::GetRandomEncounter(void) {
+    size_t maximum = 0;
+    size_t weight = 0;
+    std::vector<int64_t> weights = std::vector<int64_t>();
+
+    for (Encounter encounter : GameData::ENCOUNTERS) {
+        if (encounter.weight != "{}" && (weight = interpreter.ParseStatement<int32_t>(*this, RegisterType::INT, encounter.weight)) > 0) {
+            maximum += weight;
+            weights.push_back(weight);
+            //std::cout << std::format("Encounter {:0>2} {:0>4}", weights.size(), weight) << std::endl;
+        } else {
+            weights.push_back(-1);
+            //std::cout << std::format("Encounter {:0>2} {:0>4}", weights.size(), 0) << std::endl;
+        }
+    }
+
+    int64_t choice = static_cast<int64_t>(PERCENT_DISTRIBUTION(generator) * maximum);
+
+    for (size_t i = 0; i < GameData::ENCOUNTERS.size(); ++i) {
+        if (weights[i] != -1 && (choice -= weights[i]) <= 0) {
+            return i;
+        }
+    }
+
+    return (size_t)0;
+};
+
+void GameState::InitializeRoom(RoomInstance* const a_roomInstance) {
+    a_roomInstance->initialized = true;
+    std::vector<ConnectionInstance> newConnections = a_roomInstance->connections;
+    size_t newRoomThing = 0;
+    const RoomData& roomType = GameData::ROOM_DATA[a_roomInstance->roomID];
+    size_t roomIndex = a_roomInstance->roomIndex;
+    size_t newRoomCount = roomType.minNew + PERCENT_DISTRIBUTION(generator) * (roomType.maxNew - roomType.minNew);
+    for (int i = 0; i < std::min<int32_t>(roomType.minExisting + PERCENT_DISTRIBUTION(generator) * (roomType.maxExisting - roomType.minExisting), usedRooms); ++i) {
+        newConnections.push_back(
+            ConnectionInstance {
+                (newRoomThing = size_t(PERCENT_DISTRIBUTION(generator) * usedRooms)),
+                GameData::ROOM_DATA[rooms[newRoomThing].roomID].toConnection,
+                roomType.fromConnection
+            }
+        );
+    }
+    for (int i = 0; i < newRoomCount; ++i) {
+        newConnections.push_back(
+            ConnectionInstance {
+                (newRoomThing = PushBackRoom(GetRandomRoom(roomType))),
+                GameData::ROOM_DATA[rooms[newRoomThing].roomID].toConnection,
+                roomType.fromConnection
+            }
+        );
+
+        if (GameData::ROOM_DATA[rooms[newRoomThing].roomID].backlink) {
+            rooms[newRoomThing].connections.push_back(
+                ConnectionInstance {
+                    roomIndex,
+                    ConnectionTest(),
+                    ConnectionTest()
+                }
+            );
+        }
+    }
+    rooms[roomIndex].connections = newConnections;
+}
+
 std::vector<StartData> GameState::Starts = {};
