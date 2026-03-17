@@ -79,6 +79,51 @@ Name    | Value
 
 By default the instructions assume you do not have these set, if you do, then you can skip certain sections.
 
+### Linux (Bash) - Environment GCC/G++
+
+You can either run `scripts/environment.sh` or do it by hand:
+
+```bash
+export CXX=g++
+export CC=gcc
+```
+
+### Windows (Batch) - Environment MSVC
+
+You can either run `scripts/environment.bat` or do it by hand:
+
+If you are using Visual Studio Build Tools then you must run the following to get access to MSVC:
+
+```bat
+set VCVARS="C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+"%VCVARS%"
+```
+
+Then run the following to build it:
+
+```bat
+set CXX=cl
+set CC=cl
+```
+
+### Windows (Powershell) - Environment MSVC
+
+You can either run `scripts/environment.ps1` or do it by hand:
+
+If you are using Visual Studio Build Tools then you must run the following to get access to MSVC:
+
+```powershell
+$env:VCVARS="C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+& $env:VCVARS
+```
+
+Then run the following to build it:
+
+```powershell
+$env:CXX='cl.exe'
+$env:CC='cl.exe'
+```
+
 ## Building
 
 In all operating systems you will require **CMake**, and due to how I have set it up, you must have **CXX** & **CC** as environment variables pointing to your **C++** & **C** compiler respectively. Please do note, this assumes your working directory is the same as this **README.md** file, you should observe the following file structure:
@@ -97,6 +142,9 @@ M3Lab1/
 │  ├─ debug.bat
 │  ├─ debug.ps1
 │  ├─ debug.sh
+│  ├─ environment.bat
+│  ├─ environment.ps1
+│  ├─ environment.sh
 │  ├─ release.bat
 │  ├─ release.ps1
 │  └─ release.sh
@@ -108,52 +156,27 @@ M3Lab1/
 └─ vcpkg.json
 ```
 
-### Linux (Bash) - GCC/G++
+### Linux (Bash) - Build
 
 You can either run `scripts/build.sh` or do it by hand:
 
 ```bash
-export CXX=g++
-export CC=gcc
-
 cmake --workflow --preset x64-all
 ```
 
-### Windows (Batch) - Clang
+### Windows (Batch) - Build
 
 You can either run `scripts/build.bat` or do it by hand:
 
-If you are using Visual Studio Build Tools then you must run the following to get access to clang:
-
 ```bat
-set VCVARS="C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
-"%VCVARS%"
-```
-
-Then run the following to build it:
-
-```bat
-set CXX=cl
-set CC=cl
-
 cmake --workflow --preset x64-all
 ```
 
-### Windows (Powershell) - Clang
+### Windows (Powershell) - Build
 
 You can either run `scripts/build.ps1` or do it by hand:
 
 ```powershell
-$env:VCVARS="C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
-& $env:VCVARS
-```
-
-Then run the following to build it:
-
-```powershell
-$env:CXX='cl.exe'
-$env:CC='cl.exe'
-
 cmake --workflow --preset x64-all
 ```
 
@@ -166,7 +189,7 @@ This will build both a Debug build and a Release build, found in: `out/build/x64
 
 ## Running
 
-### Linux (Bash) - Release
+### Linux (Bash) - Run Release
 
 You can either run `scripts/release.sh` or do it by hand:
 
@@ -176,7 +199,7 @@ You can either run `scripts/release.sh` or do it by hand:
 
 ***
 
-### Linux (Bash) - Debug
+### Linux (Bash) - Run Debug
 
 You can either run `scripts/debug.sh` or do it by hand:
 
@@ -186,7 +209,7 @@ You can either run `scripts/debug.sh` or do it by hand:
 
 ***
 
-### Windows (Command Prompt) - Release
+### Windows (Command Prompt) - Run Release
 
 You can either run `scripts/release.bat` or do it by hand:
 
@@ -196,7 +219,7 @@ START "" /D ".\out\build\x64\Release" ".\out\build\x64\Release\ArsTimoris.exe"
 
 ***
 
-### Windows (Command Prompt) - Debug
+### Windows (Command Prompt) - Run Debug
 
 You can either run `scripts/debug.bat` or do it by hand:
 
@@ -206,7 +229,7 @@ START "" /D ".\out\build\x64\Debug" ".\out\build\x64\Debug\ArsTimoris.exe"
 
 ***
 
-### Windows (Powershell) - Release
+### Windows (Powershell) - Run Release
 
 You can either run `scripts/release.ps1` or do it by hand:
 
@@ -216,7 +239,7 @@ Start-Process -FilePath ".\out\build\x64\Release\ArsTimoris.exe" -WorkingDirecto
 
 ***
 
-### Windows (Powershell) - Debug
+### Windows (Powershell) - Run Debug
 
 You can either run `scripts/debug.ps1` or do it by hand:
 
