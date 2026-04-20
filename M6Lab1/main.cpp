@@ -26,10 +26,11 @@ void GetTerminalSize(uint32_t& a_cols, uint32_t& a_rows) {
     a_rows = consoleScreenBufferInfo.dwSize.Y - 1;
 }
 #elif defined(__linux__) || defined(__APPLE__)
+#include <cmath>
 #include <sys/ioctl.h>
 void GetTerminalSize(uint32_t& a_cols, uint32_t& a_rows) {
     struct winsize window;
-    ioctl(fileno(stdout), TIOCGWINSZ &window);
+    ioctl(fileno(stdout), TIOCGWINSZ, &window);
     a_cols = window.ws_col;
     a_rows = window.ws_row;
 }
@@ -154,7 +155,7 @@ public:
             switch (type) {
                 case 1: {
                     SafeInput<std::string>("Name: ", name);
-                    this->players.push_back(Player{true, 0, 4, -1, 
+                    this->players.push_back(Player{true, i, 4, -1, 
                         name,
                         Personality{
                             0.0f, 
@@ -166,6 +167,7 @@ public:
                             0.0f
                         }
                     });
+                    break;
                 }
                 case 2: {
                     this->players.push_back(Player{false, i, 4, -1,
@@ -180,6 +182,7 @@ public:
                             0.5f + RandF() * 1.5f,
                         }
                     });
+                    break;
                 }
             }
             logFile << "> Player " << (i) << "\n";
