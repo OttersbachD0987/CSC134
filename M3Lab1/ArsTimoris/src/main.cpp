@@ -517,9 +517,9 @@ int main(int argc, char** argv) {
                             gameState.menu = Menu::NONE;
                         }
                         break;
+                        }
                 }
                 break;
-                }
             }
             case Screen::GAME_OVER: {
                 room = &gameState.rooms[gameState.curRoom];
