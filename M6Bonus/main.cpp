@@ -3,6 +3,10 @@
 // Daley Ottersbach
 // 4/20/2026
 
+/// IMPORTANT
+// sudo apt update
+// sudo apt install ffmpeg
+
 #include <iostream>
 #include <fstream>
 #include <cmath>
