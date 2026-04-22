@@ -94,6 +94,12 @@ enum class ShootResult {
     FAULTY_VALUE,
 };
 
+enum class ItemType {
+    NONE = -1,
+    BOOSTER,
+    SWITCHER,
+};
+
 struct GameState;
 struct Player;
 
@@ -118,6 +124,7 @@ public:
     int32_t id;
     int32_t lives;
     int32_t lastHurt;
+    ItemType items[4];
     std::string name;
     Personality personality;
 };
@@ -156,6 +163,7 @@ public:
                 case 1: {
                     SafeInput<std::string>("Name: ", name);
                     this->players.push_back(Player{true, i, 4, -1, 
+                        {ItemType::NONE, ItemType::NONE, ItemType::NONE, ItemType::NONE},
                         name,
                         Personality{
                             0.0f, 
@@ -171,6 +179,7 @@ public:
                 }
                 case 2: {
                     this->players.push_back(Player{false, i, 4, -1,
+                        {ItemType::NONE, ItemType::NONE, ItemType::NONE, ItemType::NONE},
                         std::format("AI {}", aiNumber++),
                         Personality{
                             0.5f + RandF(),
@@ -320,7 +329,7 @@ int main(int argc, char** argv) {
         Player& currentPlayer = game.players[game.currentTurn];
         std::println("{}'s Turn", currentPlayer.name);
         for (const Player& player : game.players) {
-            std::cout << (player.id + 1) << ") [";
+            std::print("{:>2}) [", (player.id + 1));
             for (int32_t i = 0; i < player.lives; ++i) {
                 std::cout << "█";
             }
@@ -330,9 +339,27 @@ int main(int argc, char** argv) {
             std::cout << "] " << player.name << std::endl;
         }
         if (currentPlayer.player) {
-            do {
-                BoundedInput<int32_t>("Target: ", target, 1, (int32_t)game.players.size());
-            } while (game.players[--target].lives <= 0);
+            int32_t choice;
+            h:
+            BoundedInput<int32_t>("1) Items\n2) Shoot\nChoice: ", choice, 1, 2);
+            switch (choice) {
+                case 1: {
+                    for (int32_t i = 0; i < 4; ++i) {
+                        std::println("");
+                    }
+                    BoundedInput<int32_t>("Item: ", choice, 1, 4);
+                    goto h;
+                }
+                case 2: {
+                    do {
+                        BoundedInput<int32_t>("Target: ", target, 1, (int32_t)game.players.size() + 1);
+                        if (--target == game.players.size()) {
+                            goto h;
+                        }
+                    } while (game.players[target].lives <= 0);
+                    break;
+                }
+            }
         } else {
             target = currentPlayer.personality.EvaluateSituation(game, currentPlayer);
             currentPlayer = game.players[game.currentTurn];

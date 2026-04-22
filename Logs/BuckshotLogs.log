@@ -1,121 +1,596 @@
 >>> NEW BUCKSHOT INSTANCE <<<
 > Player 0
 > Player 1
-Caution:     0.717
-Paranoia:    0.846
-Aggression:  1.423
-Sadism:      0.604
-Bloodlust:   1.467
-Retribution: 1.332
-Antagonism:  0.927
+Caution:     0.960
+Paranoia:    1.956
+Aggression:  1.372
+Sadism:      1.784
+Bloodlust:   1.873
+Retribution: 1.657
+Antagonism:  0.707
 > Player 2
-Caution:     1.345
-Paranoia:    0.647
-Aggression:  1.472
-Sadism:      1.136
+Caution:     1.118
+Paranoia:    1.763
+Aggression:  1.452
+Sadism:      1.029
+Bloodlust:   1.900
+Retribution: 1.350
+Antagonism:  0.882
+> Player 3
+Caution:     0.568
+Paranoia:    1.835
+Aggression:  1.980
+Sadism:      0.984
+Bloodlust:   0.703
+Retribution: 0.845
+Antagonism:  0.580
+> Player 4
+Caution:     0.961
+Paranoia:    0.965
+Aggression:  0.561
+Sadism:      1.760
+Bloodlust:   1.004
+Retribution: 1.599
+Antagonism:  0.502
+> Player 5
+Caution:     0.572
+Paranoia:    1.012
+Aggression:  1.034
+Sadism:      1.297
+Bloodlust:   0.968
+Retribution: 1.906
+Antagonism:  1.081
+> Player 6
+Caution:     0.727
+Paranoia:    1.564
+Aggression:  1.287
+Sadism:      1.767
+Bloodlust:   1.326
+Retribution: 0.739
+Antagonism:  0.797
+> Player 7
+Caution:     0.984
+Paranoia:    1.589
+Aggression:  1.179
+Sadism:      1.328
 Bloodlust:   1.424
-Retribution: 0.928
-Antagonism:  1.898
+Retribution: 1.159
+Antagonism:  1.812
+> Player 8
+Caution:     1.251
+Paranoia:    1.504
+Aggression:  1.892
+Sadism:      0.819
+Bloodlust:   1.969
+Retribution: 1.952
+Antagonism:  0.579
+> Player 9
+Caution:     0.815
+Paranoia:    1.551
+Aggression:  0.581
+Sadism:      1.080
+Bloodlust:   0.563
+Retribution: 1.115
+Antagonism:  1.877
 > Loading Rounds
-LIVE:   3
-BLANK:  0
+LIVE:   1
+BLANK:  2
 TOTAL:  3
-> Rounds [••̭̌•]
+> Rounds [oǒ̭•]
 Total: 3
-Live: 3
-Blank: 0
-> Player 0 shot Player 1 (LIVE)
-> Rounds [•̭̌•]
-Total: 2
-Live: 2
-Blank: 0
-> Player 1 ranks shooting Player 0 as 0.82069814
-> Player 1 ranks shooting Player 2 as 0.57102495
-> Player 1 shot Player 2 (LIVE)
-> Rounds [̭̌•]
-Total: 1
 Live: 1
-Blank: 0
-> Player 2 ranks shooting Player 0 as 4.2722626
-> Player 2 ranks shooting Player 1 as 2.08881
-> Player 2 shot Player 0 (LIVE)
+Blank: 2
+> Player 0 shot Player 0 (LIVE)
+> Rounds [ǒ̭o]
+Total: 2
+Live: 0
+Blank: 2
+> Player 1 shot Player 1 (BLANK)
+> Rounds [̭̌o]
+Total: 1
+Live: 0
+Blank: 1
+> Player 1 shot Player 1 (BLANK)
 > Rounds []
 Total: 0
 Live: 0
 Blank: 0
 > Loading Rounds
 LIVE:   2
-BLANK:  3
-TOTAL:  5
-> Rounds [•o•ǒ̭o]
-Total: 5
-Live: 2
-Blank: 3
-> Player 0 shot Player 0 (BLANK)
-> Rounds [•o•̭̌o]
+BLANK:  2
+TOTAL:  4
+> Rounds [o•ǒ̭•]
 Total: 4
 Live: 2
 Blank: 2
-> Player 0 shot Player 0 (BLANK)
-> Rounds [•ǒ̭•]
+> Player 1 ranks shooting Player 0 as 0.829793
+> Player 1 ranks shooting Player 1 as 4.0760612
+> Player 1 ranks shooting Player 2 as 0.829793
+> Player 1 ranks shooting Player 3 as 0.829793
+> Player 1 ranks shooting Player 4 as 0.829793
+> Player 1 ranks shooting Player 5 as 0.829793
+> Player 1 ranks shooting Player 6 as 0.829793
+> Player 1 ranks shooting Player 7 as 0.829793
+> Player 1 ranks shooting Player 8 as 0.829793
+> Player 1 ranks shooting Player 9 as 0.829793
+> Player 1 shot Player 1 (LIVE)
+> Rounds [o•̭̌o]
 Total: 3
-Live: 2
-Blank: 1
-> Player 0 shot Player 1 (LIVE)
-> Rounds [•̭̌o]
+Live: 1
+Blank: 2
+> Player 2 ranks shooting Player 0 as 0.49091023
+> Player 2 ranks shooting Player 1 as 0.49091023
+> Player 2 ranks shooting Player 2 as 4.73099
+> Player 2 ranks shooting Player 3 as 0.49091023
+> Player 2 ranks shooting Player 4 as 0.49091023
+> Player 2 ranks shooting Player 5 as 0.49091023
+> Player 2 ranks shooting Player 6 as 0.49091023
+> Player 2 ranks shooting Player 7 as 0.49091023
+> Player 2 ranks shooting Player 8 as 0.49091023
+> Player 2 ranks shooting Player 9 as 0.49091023
+> Player 2 shot Player 4 (BLANK)
+> Rounds [ǒ̭•]
 Total: 2
 Live: 1
 Blank: 1
-> Player 1 ranks shooting Player 0 as 0.41034907
-> Player 1 ranks shooting Player 1 as 2.362096
-> Player 1 ranks shooting Player 2 as 0.28551248
-> Player 1 shot Player 1 (BLANK)
-> Rounds [̭̌•]
+> Player 3 ranks shooting Player 0 as 0.32077396
+> Player 3 ranks shooting Player 1 as 0.32077396
+> Player 3 ranks shooting Player 2 as 0.32077396
+> Player 3 ranks shooting Player 3 as 6.4634748
+> Player 3 ranks shooting Player 4 as 0.32077396
+> Player 3 ranks shooting Player 5 as 0.32077396
+> Player 3 ranks shooting Player 6 as 0.32077396
+> Player 3 ranks shooting Player 7 as 0.32077396
+> Player 3 ranks shooting Player 8 as 0.32077396
+> Player 3 ranks shooting Player 9 as 0.32077396
+> Player 3 shot Player 2 (LIVE)
+> Rounds [̭̌o]
 Total: 1
-Live: 1
-Blank: 0
-> Player 1 ranks shooting Player 0 as 0.82069814
-> Player 1 ranks shooting Player 2 as 0.57102495
-> Player 1 shot Player 2 (LIVE)
+Live: 0
+Blank: 1
+> Player 4 shot Player 4 (BLANK)
 > Rounds []
 Total: 0
 Live: 0
 Blank: 0
 > Loading Rounds
-LIVE:   1
-BLANK:  4
-TOTAL:  5
-> Rounds [oo•ǒ̭o]
+LIVE:   3
+BLANK:  3
+TOTAL:  6
+> Rounds [oo•o•̭̌•]
+Total: 6
+Live: 3
+Blank: 3
+> Player 4 ranks shooting Player 0 as 0.23808601
+> Player 4 ranks shooting Player 1 as 0.23808601
+> Player 4 ranks shooting Player 2 as 0.23808601
+> Player 4 ranks shooting Player 3 as 0.23808601
+> Player 4 ranks shooting Player 4 as 2.007258
+> Player 4 ranks shooting Player 5 as 0.23808601
+> Player 4 ranks shooting Player 6 as 0.23808601
+> Player 4 ranks shooting Player 7 as 0.23808601
+> Player 4 ranks shooting Player 8 as 0.23808601
+> Player 4 ranks shooting Player 9 as 0.23808601
+> Player 4 shot Player 4 (LIVE)
+> Rounds [oo•ǒ̭•]
 Total: 5
-Live: 1
-Blank: 4
-> Player 2 ranks shooting Player 0 as 0.8544525
-> Player 2 ranks shooting Player 1 as 0.52345353
-> Player 2 ranks shooting Player 2 as 2.4048653
-> Player 2 shot Player 0 (BLANK)
+Live: 2
+Blank: 3
+> Player 5 ranks shooting Player 0 as 0.33142847
+> Player 5 ranks shooting Player 1 as 0.33142847
+> Player 5 ranks shooting Player 2 as 0.33142847
+> Player 5 ranks shooting Player 3 as 0.33142847
+> Player 5 ranks shooting Player 4 as 0.33142847
+> Player 5 ranks shooting Player 5 as 4.4249845
+> Player 5 ranks shooting Player 6 as 0.33142847
+> Player 5 ranks shooting Player 7 as 0.33142847
+> Player 5 ranks shooting Player 8 as 0.33142847
+> Player 5 ranks shooting Player 9 as 0.33142847
+> Player 5 shot Player 3 (LIVE)
 > Rounds [oo•̭̌o]
 Total: 4
 Live: 1
 Blank: 3
-> Player 0 shot Player 1 (BLANK)
+> Player 6 ranks shooting Player 0 as 0.32952738
+> Player 6 ranks shooting Player 1 as 0.32952738
+> Player 6 ranks shooting Player 2 as 0.32952738
+> Player 6 ranks shooting Player 3 as 0.32952738
+> Player 6 ranks shooting Player 4 as 0.32952738
+> Player 6 ranks shooting Player 5 as 0.32952738
+> Player 6 ranks shooting Player 6 as 8.602229
+> Player 6 ranks shooting Player 7 as 0.32952738
+> Player 6 ranks shooting Player 8 as 0.32952738
+> Player 6 ranks shooting Player 9 as 0.32952738
+> Player 6 shot Player 6 (BLANK)
 > Rounds [oǒ̭•]
 Total: 3
 Live: 1
 Blank: 2
-> Player 1 ranks shooting Player 0 as 0.27356607
-> Player 1 ranks shooting Player 1 as 3.5431437
-> Player 1 ranks shooting Player 2 as 0.46216738
-> Player 1 shot Player 1 (LIVE)
+> Player 6 ranks shooting Player 0 as 0.43936983
+> Player 6 ranks shooting Player 1 as 0.43936983
+> Player 6 ranks shooting Player 2 as 0.43936983
+> Player 6 ranks shooting Player 3 as 0.43936983
+> Player 6 ranks shooting Player 4 as 0.43936983
+> Player 6 ranks shooting Player 5 as 0.43936983
+> Player 6 ranks shooting Player 6 as 6.4516716
+> Player 6 ranks shooting Player 7 as 0.43936983
+> Player 6 ranks shooting Player 8 as 0.43936983
+> Player 6 ranks shooting Player 9 as 0.43936983
+> Player 6 shot Player 6 (LIVE)
 > Rounds [ǒ̭o]
 Total: 2
 Live: 0
 Blank: 2
-> Player 2 shot Player 2 (BLANK)
+> Player 7 shot Player 7 (BLANK)
 > Rounds [̭̌o]
 Total: 1
 Live: 0
 Blank: 1
+> Player 7 shot Player 7 (BLANK)
+> Rounds []
+Total: 0
+Live: 0
+Blank: 0
+> Loading Rounds
+LIVE:   4
+BLANK:  3
+TOTAL:  7
+> Rounds [o•o•o•̭̌•]
+Total: 7
+Live: 4
+Blank: 3
+> Player 7 ranks shooting Player 0 as 1.5949273
+> Player 7 ranks shooting Player 1 as 1.5949273
+> Player 7 ranks shooting Player 2 as 1.5949273
+> Player 7 ranks shooting Player 3 as 1.5949273
+> Player 7 ranks shooting Player 4 as 1.5949273
+> Player 7 ranks shooting Player 5 as 1.5949273
+> Player 7 ranks shooting Player 6 as 1.5949273
+> Player 7 ranks shooting Player 7 as 2.8251767
+> Player 7 ranks shooting Player 8 as 1.5949273
+> Player 7 ranks shooting Player 9 as 1.5949273
+> Player 7 shot Player 1 (LIVE)
+> Rounds [o•o•ǒ̭•]
+Total: 6
+Live: 3
+Blank: 3
+> Player 8 ranks shooting Player 0 as 0.56151754
+> Player 8 ranks shooting Player 1 as 1.3493044
+> Player 8 ranks shooting Player 2 as 0.56151754
+> Player 8 ranks shooting Player 3 as 0.56151754
+> Player 8 ranks shooting Player 4 as 0.56151754
+> Player 8 ranks shooting Player 5 as 0.56151754
+> Player 8 ranks shooting Player 6 as 0.56151754
+> Player 8 ranks shooting Player 7 as 0.56151754
+> Player 8 ranks shooting Player 8 as 2.403438
+> Player 8 ranks shooting Player 9 as 0.56151754
+> Player 8 shot Player 1 (LIVE)
+> Rounds [o•o•̭̌o]
+Total: 5
+Live: 2
+Blank: 3
+> Player 9 ranks shooting Player 0 as 0.38408592
+> Player 9 ranks shooting Player 2 as 0.38408592
+> Player 9 ranks shooting Player 3 as 0.38408592
+> Player 9 ranks shooting Player 4 as 0.38408592
+> Player 9 ranks shooting Player 5 as 0.38408592
+> Player 9 ranks shooting Player 6 as 0.38408592
+> Player 9 ranks shooting Player 7 as 0.38408592
+> Player 9 ranks shooting Player 8 as 0.38408592
+> Player 9 ranks shooting Player 9 as 4.757915
+> Player 9 shot Player 2 (BLANK)
+> Rounds [o•ǒ̭•]
+Total: 4
+Live: 2
+Blank: 2
+> Player 0 shot Player 0 (LIVE)
+> Rounds [o•̭̌o]
+Total: 3
+Live: 1
+Blank: 2
+> Player 2 ranks shooting Player 0 as 0.90590036
+> Player 2 ranks shooting Player 2 as 4.73099
+> Player 2 ranks shooting Player 3 as 0.7516595
+> Player 2 ranks shooting Player 4 as 0.49091023
+> Player 2 ranks shooting Player 5 as 0.49091023
+> Player 2 ranks shooting Player 6 as 0.49091023
+> Player 2 ranks shooting Player 7 as 0.49091023
+> Player 2 ranks shooting Player 8 as 0.49091023
+> Player 2 ranks shooting Player 9 as 0.49091023
 > Player 2 shot Player 2 (BLANK)
+> Rounds [ǒ̭•]
+Total: 2
+Live: 1
+Blank: 1
+> Player 2 ranks shooting Player 0 as 1.3588507
+> Player 2 ranks shooting Player 2 as 3.1539934
+> Player 2 ranks shooting Player 3 as 1.1274893
+> Player 2 ranks shooting Player 4 as 0.73636544
+> Player 2 ranks shooting Player 5 as 0.73636544
+> Player 2 ranks shooting Player 6 as 0.73636544
+> Player 2 ranks shooting Player 7 as 0.73636544
+> Player 2 ranks shooting Player 8 as 0.73636544
+> Player 2 ranks shooting Player 9 as 0.73636544
+> Player 2 shot Player 8 (LIVE)
+> Rounds [̭̌o]
+Total: 1
+Live: 0
+Blank: 1
+> Player 3 shot Player 3 (BLANK)
+> Rounds []
+Total: 0
+Live: 0
+Blank: 0
+> Loading Rounds
+LIVE:   5
+BLANK:  1
+TOTAL:  6
+> Rounds [••o••̭̌•]
+Total: 6
+Live: 5
+Blank: 1
+> Player 3 ranks shooting Player 0 as 0.38202974
+> Player 3 ranks shooting Player 2 as 0.53462327
+> Player 3 ranks shooting Player 3 as 3.8780851
+> Player 3 ranks shooting Player 4 as 0.53462327
+> Player 3 ranks shooting Player 5 as 0.7793133
+> Player 3 ranks shooting Player 6 as 0.53462327
+> Player 3 ranks shooting Player 7 as 0.53462327
+> Player 3 ranks shooting Player 8 as 0.53462327
+> Player 3 ranks shooting Player 9 as 0.53462327
+> Player 3 shot Player 3 (LIVE)
+> Rounds [••o•̭̌•]
+Total: 5
+Live: 4
+Blank: 1
+> Player 4 ranks shooting Player 0 as 0.21733114
+> Player 4 ranks shooting Player 2 as 0.38093764
+> Player 4 ranks shooting Player 3 as 0.21733114
+> Player 4 ranks shooting Player 4 as 1.2545362
+> Player 4 ranks shooting Player 5 as 0.38093764
+> Player 4 ranks shooting Player 6 as 0.38093764
+> Player 4 ranks shooting Player 7 as 0.38093764
+> Player 4 ranks shooting Player 8 as 0.38093764
+> Player 4 ranks shooting Player 9 as 0.38093764
+> Player 4 shot Player 9 (LIVE)
+> Rounds [••ǒ̭•]
+Total: 4
+Live: 3
+Blank: 1
+> Player 5 ranks shooting Player 0 as 0.46363148
+> Player 5 ranks shooting Player 2 as 0.6214284
+> Player 5 ranks shooting Player 3 as 0.46363148
+> Player 5 ranks shooting Player 4 as 0.6214284
+> Player 5 ranks shooting Player 5 as 2.3599918
+> Player 5 ranks shooting Player 6 as 0.6214284
+> Player 5 ranks shooting Player 7 as 0.6214284
+> Player 5 ranks shooting Player 8 as 0.6214284
+> Player 5 ranks shooting Player 9 as 0.6214284
+> Player 5 shot Player 6 (LIVE)
+> Rounds [••̭̌o]
+Total: 3
+Live: 2
+Blank: 1
+> Player 6 ranks shooting Player 0 as 0.65953153
+> Player 6 ranks shooting Player 2 as 0.87873966
+> Player 6 ranks shooting Player 3 as 0.65953153
+> Player 6 ranks shooting Player 4 as 0.87873966
+> Player 6 ranks shooting Player 5 as 0.8146766
+> Player 6 ranks shooting Player 6 as 3.2258358
+> Player 6 ranks shooting Player 7 as 0.87873966
+> Player 6 ranks shooting Player 8 as 0.87873966
+> Player 6 ranks shooting Player 9 as 0.87873966
+> Player 6 shot Player 2 (BLANK)
+> Rounds [•̭̌•]
+Total: 2
+Live: 2
+Blank: 0
+> Player 7 ranks shooting Player 0 as 2.9929757
+> Player 7 ranks shooting Player 2 as 2.7911227
+> Player 7 ranks shooting Player 3 as 2.9929757
+> Player 7 ranks shooting Player 4 as 2.7911227
+> Player 7 ranks shooting Player 5 as 2.7911227
+> Player 7 ranks shooting Player 6 as 2.9929757
+> Player 7 ranks shooting Player 8 as 2.7911227
+> Player 7 ranks shooting Player 9 as 2.7911227
+> Player 7 shot Player 0 (LIVE)
+> Rounds [̭̌•]
+Total: 1
+Live: 1
+Blank: 0
+> Player 8 ranks shooting Player 2 as 3.7872567
+> Player 8 ranks shooting Player 3 as 2.6986089
+> Player 8 ranks shooting Player 4 as 1.1230351
+> Player 8 ranks shooting Player 5 as 1.1230351
+> Player 8 ranks shooting Player 6 as 2.6986089
+> Player 8 ranks shooting Player 7 as 1.1230351
+> Player 8 ranks shooting Player 9 as 1.1230351
+> Player 8 shot Player 9 (LIVE)
+> Rounds []
+Total: 0
+Live: 0
+Blank: 0
+> Loading Rounds
+LIVE:   4
+BLANK:  3
+TOTAL:  7
+> Rounds [••ooo•̭̌•]
+Total: 7
+Live: 4
+Blank: 3
+> Player 9 ranks shooting Player 2 as 0.54869425
+> Player 9 ranks shooting Player 3 as 0.28604126
+> Player 9 ranks shooting Player 4 as 0.54869425
+> Player 9 ranks shooting Player 5 as 0.54869425
+> Player 9 ranks shooting Player 6 as 0.28604126
+> Player 9 ranks shooting Player 7 as 0.54869425
+> Player 9 ranks shooting Player 8 as 0.32604274
+> Player 9 ranks shooting Player 9 as 3.3305404
+> Player 9 shot Player 7 (LIVE)
+> Rounds [••ooǒ̭•]
+Total: 6
+Live: 3
+Blank: 3
+> Player 2 ranks shooting Player 2 as 3.1539934
+> Player 2 ranks shooting Player 3 as 2.0806105
+> Player 2 ranks shooting Player 4 as 0.73636544
+> Player 2 ranks shooting Player 5 as 0.73636544
+> Player 2 ranks shooting Player 6 as 1.3588507
+> Player 2 ranks shooting Player 7 as 0.73636544
+> Player 2 ranks shooting Player 8 as 0.73636544
+> Player 2 ranks shooting Player 9 as 1.3588507
+> Player 2 shot Player 2 (LIVE)
+> Rounds [••oǒ̭o]
+Total: 5
+Live: 2
+Blank: 3
+> Player 3 ranks shooting Player 2 as 0.1833743
+> Player 3 ranks shooting Player 3 as 8.079343
+> Player 3 ranks shooting Player 4 as 0.2566192
+> Player 3 ranks shooting Player 5 as 0.2566192
+> Player 3 ranks shooting Player 6 as 0.1833743
+> Player 3 ranks shooting Player 7 as 0.2566192
+> Player 3 ranks shooting Player 8 as 0.2566192
+> Player 3 ranks shooting Player 9 as 0.1833743
+> Player 3 shot Player 5 (BLANK)
+> Rounds [••ǒ̭o]
+Total: 4
+Live: 2
+Blank: 2
+> Player 4 ranks shooting Player 2 as 0.13583197
+> Player 4 ranks shooting Player 3 as 0.13583197
+> Player 4 ranks shooting Player 4 as 2.007258
+> Player 4 ranks shooting Player 5 as 0.23808601
+> Player 4 ranks shooting Player 6 as 0.13583197
+> Player 4 ranks shooting Player 7 as 0.23808601
+> Player 4 ranks shooting Player 8 as 0.23808601
+> Player 4 ranks shooting Player 9 as 0.13583197
+> Player 4 shot Player 4 (BLANK)
+> Rounds [••̭̌o]
+Total: 3
+Live: 2
+Blank: 1
+> Player 4 ranks shooting Player 2 as 0.1811093
+> Player 4 ranks shooting Player 3 as 0.1811093
+> Player 4 ranks shooting Player 4 as 1.5054433
+> Player 4 ranks shooting Player 5 as 0.31744805
+> Player 4 ranks shooting Player 6 as 0.1811093
+> Player 4 ranks shooting Player 7 as 0.31744805
+> Player 4 ranks shooting Player 8 as 0.31744805
+> Player 4 ranks shooting Player 9 as 0.1811093
+> Player 4 shot Player 6 (BLANK)
+> Rounds [•̭̌•]
+Total: 2
+Live: 2
+Blank: 0
+> Player 5 ranks shooting Player 2 as 0.61817527
+> Player 5 ranks shooting Player 3 as 0.61817527
+> Player 5 ranks shooting Player 4 as 0.82857114
+> Player 5 ranks shooting Player 6 as 0.61817527
+> Player 5 ranks shooting Player 7 as 0.82857114
+> Player 5 ranks shooting Player 8 as 0.82857114
+> Player 5 ranks shooting Player 9 as 0.61817527
+> Player 5 shot Player 2 (LIVE)
+> Rounds [̭̌•]
+Total: 1
+Live: 1
+Blank: 0
+> Player 6 ranks shooting Player 3 as 0.98929733
+> Player 6 ranks shooting Player 4 as 1.3181095
+> Player 6 ranks shooting Player 5 as 1.2220149
+> Player 6 ranks shooting Player 7 as 1.3181095
+> Player 6 ranks shooting Player 8 as 1.3181095
+> Player 6 ranks shooting Player 9 as 0.98929733
+> Player 6 shot Player 4 (LIVE)
+> Rounds []
+Total: 0
+Live: 0
+Blank: 0
+> Loading Rounds
+LIVE:   6
+BLANK:  2
+TOTAL:  8
+> Rounds [••o•••ǒ̭•]
+Total: 8
+Live: 6
+Blank: 2
+> Player 7 ranks shooting Player 3 as 2.2447321
+> Player 7 ranks shooting Player 4 as 2.2447321
+> Player 7 ranks shooting Player 5 as 2.0933418
+> Player 7 ranks shooting Player 6 as 2.2447321
+> Player 7 ranks shooting Player 7 as 2.1525156
+> Player 7 ranks shooting Player 8 as 2.0933418
+> Player 7 ranks shooting Player 9 as 1.4354862
+> Player 7 shot Player 7 (LIVE)
+> Rounds [••o•••̭̌o]
+Total: 7
+Live: 5
+Blank: 2
+> Player 8 ranks shooting Player 3 as 1.9275779
+> Player 8 ranks shooting Player 4 as 1.9275779
+> Player 8 ranks shooting Player 5 as 0.802168
+> Player 8 ranks shooting Player 6 as 1.9275779
+> Player 8 ranks shooting Player 7 as 1.9275779
+> Player 8 ranks shooting Player 8 as 1.6824067
+> Player 8 ranks shooting Player 9 as 1.9275779
+> Player 8 shot Player 7 (BLANK)
+> Rounds [••o••̭̌•]
+Total: 6
+Live: 5
+Blank: 1
+> Player 9 ranks shooting Player 3 as 0.4171435
+> Player 9 ranks shooting Player 4 as 0.4171435
+> Player 9 ranks shooting Player 5 as 0.80017906
+> Player 9 ranks shooting Player 6 as 0.4171435
+> Player 9 ranks shooting Player 7 as 0.4171435
+> Player 9 ranks shooting Player 8 as 0.47547898
+> Player 9 ranks shooting Player 9 as 2.2837992
+> Player 9 shot Player 9 (LIVE)
+> Rounds [••o•̭̌•]
+Total: 5
+Live: 4
+Blank: 1
+> Player 3 ranks shooting Player 3 as 4.0396714
+> Player 3 ranks shooting Player 4 as 0.3667486
+> Player 3 ranks shooting Player 5 as 0.5132384
+> Player 3 ranks shooting Player 6 as 0.3667486
+> Player 3 ranks shooting Player 7 as 0.3667486
+> Player 3 ranks shooting Player 8 as 0.5132384
+> Player 3 shot Player 3 (LIVE)
+> Rounds [••ǒ̭•]
+Total: 4
+Live: 3
+Blank: 1
+> Player 4 ranks shooting Player 4 as 1.338172
+> Player 4 ranks shooting Player 5 as 0.35712907
+> Player 4 ranks shooting Player 6 as 0.64887035
+> Player 4 ranks shooting Player 7 as 0.20374796
+> Player 4 ranks shooting Player 8 as 0.35712907
+> Player 4 shot Player 6 (LIVE)
+> Rounds [••̭̌o]
+Total: 3
+Live: 2
+Blank: 1
+> Player 5 ranks shooting Player 4 as 0.41211686
+> Player 5 ranks shooting Player 5 as 2.6549907
+> Player 5 ranks shooting Player 7 as 0.41211686
+> Player 5 ranks shooting Player 8 as 0.5523808
+> Player 5 shot Player 5 (BLANK)
+> Rounds [•̭̌•]
+Total: 2
+Live: 2
+Blank: 0
+> Player 5 ranks shooting Player 4 as 0.61817527
+> Player 5 ranks shooting Player 7 as 0.61817527
+> Player 5 ranks shooting Player 8 as 0.82857114
+> Player 5 shot Player 7 (LIVE)
+> Rounds [̭̌•]
+Total: 1
+Live: 1
+Blank: 0
+> Player 8 ranks shooting Player 4 as 2.6986089
+> Player 8 ranks shooting Player 5 as 1.1230351
+> Player 8 shot Player 4 (LIVE)
 > Rounds []
 Total: 0
 Live: 0
@@ -124,14 +599,76 @@ Blank: 0
 LIVE:   3
 BLANK:  5
 TOTAL:  8
-> Rounds [o••oooǒ̭•]
+> Rounds [o•o•ooǒ̭•]
 Total: 8
 Live: 3
 Blank: 5
-> Player 2 ranks shooting Player 0 as 1.6020983
-> Player 2 ranks shooting Player 2 as 1.2825949
-> Player 2 shot Player 2 (LIVE)
-> Rounds [o••ooǒ̭o]
+> Player 5 ranks shooting Player 5 as 4.7199836
+> Player 5 ranks shooting Player 8 as 0.3107142
+> Player 5 shot Player 5 (LIVE)
+> Rounds [o•o•oǒ̭o]
 Total: 7
 Live: 2
 Blank: 5
+> Player 8 ranks shooting Player 5 as 0.3208672
+> Player 8 ranks shooting Player 8 as 4.2060165
+> Player 8 shot Player 8 (BLANK)
+> Rounds [o•o•ǒ̭o]
+Total: 6
+Live: 2
+Blank: 4
+> Player 8 ranks shooting Player 5 as 0.37434506
+> Player 8 ranks shooting Player 8 as 3.6051571
+> Player 8 shot Player 8 (BLANK)
+> Rounds [o•o•̭̌o]
+Total: 5
+Live: 2
+Blank: 3
+> Player 8 ranks shooting Player 5 as 0.44921407
+> Player 8 ranks shooting Player 8 as 3.0042977
+> Player 8 shot Player 8 (BLANK)
+> Rounds [o•ǒ̭•]
+Total: 4
+Live: 2
+Blank: 2
+> Player 8 ranks shooting Player 5 as 0.56151754
+> Player 8 ranks shooting Player 8 as 2.403438
+> Player 8 shot Player 8 (LIVE)
+> Rounds [o•̭̌o]
+Total: 3
+Live: 1
+Blank: 2
+> Player 5 ranks shooting Player 5 as 5.3099813
+> Player 5 ranks shooting Player 8 as 0.20605843
+> Player 5 shot Player 5 (BLANK)
+> Rounds [ǒ̭•]
+Total: 2
+Live: 1
+Blank: 1
+> Player 5 ranks shooting Player 5 as 3.5399876
+> Player 5 ranks shooting Player 8 as 0.30908763
+> Player 5 shot Player 5 (LIVE)
+> Rounds [̭̌o]
+Total: 1
+Live: 0
+Blank: 1
+> Player 8 shot Player 8 (BLANK)
+> Rounds []
+Total: 0
+Live: 0
+Blank: 0
+> Loading Rounds
+LIVE:   5
+BLANK:  2
+TOTAL:  7
+> Rounds [••••o•̭̌o]
+Total: 7
+Live: 5
+Blank: 2
+> Player 8 ranks shooting Player 5 as 1.9275779
+> Player 8 ranks shooting Player 8 as 1.6824067
+> Player 8 shot Player 8 (BLANK)
+> Rounds [••••ǒ̭•]
+Total: 6
+Live: 5
+Blank: 1
