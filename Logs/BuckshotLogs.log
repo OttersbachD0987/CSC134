@@ -1,121 +1,122 @@
 >>> NEW BUCKSHOT INSTANCE <<<
 > Player 0
 > Player 1
-Caution:     0.717
-Paranoia:    0.846
-Aggression:  1.423
-Sadism:      0.604
-Bloodlust:   1.467
-Retribution: 1.332
-Antagonism:  0.927
+Caution:     0.773
+Paranoia:    1.357
+Aggression:  1.915
+Sadism:      0.508
+Bloodlust:   1.772
+Retribution: 0.581
+Antagonism:  0.909
 > Player 2
-Caution:     1.345
-Paranoia:    0.647
-Aggression:  1.472
-Sadism:      1.136
-Bloodlust:   1.424
-Retribution: 0.928
-Antagonism:  1.898
+Caution:     0.983
+Paranoia:    1.429
+Aggression:  0.976
+Sadism:      0.779
+Bloodlust:   1.011
+Retribution: 0.710
+Antagonism:  1.730
+> Loading Rounds
+LIVE:   1
+BLANK:  2
+TOTAL:  3
+> Rounds [•o??o]
+Total: 3
+Live: 1
+Blank: 2
+> Player 0 shot Player 0 (BLANK)
+> Rounds [•??o]
+Total: 2
+Live: 1
+Blank: 1
+> Player 0 shot Player 0 (BLANK)
+> Rounds [??•]
+Total: 1
+Live: 1
+Blank: 0
+> Player 0 shot Player 1 (LIVE)
+> Rounds []
+Total: 0
+Live: 0
+Blank: 0
 > Loading Rounds
 LIVE:   3
-BLANK:  0
-TOTAL:  3
-> Rounds [••̭̌•]
+BLANK:  1
+TOTAL:  4
+> Rounds [•••??o]
+Total: 4
+Live: 3
+Blank: 1
+> Player 1 ranks shooting Player 0 as 0.32785827
+> Player 1 ranks shooting Player 1 as 2.3414204
+> Player 1 ranks shooting Player 2 as 0.5127964
+> Player 1 shot Player 1 (BLANK)
+> Rounds [••??•]
 Total: 3
 Live: 3
 Blank: 0
-> Player 0 shot Player 1 (LIVE)
-> Rounds [•̭̌•]
+> Player 1 ranks shooting Player 0 as 0.43714434
+> Player 1 ranks shooting Player 2 as 0.6837285
+> Player 1 shot Player 0 (LIVE)
+> Rounds [•??•]
 Total: 2
 Live: 2
 Blank: 0
-> Player 1 ranks shooting Player 0 as 0.82069814
-> Player 1 ranks shooting Player 2 as 0.57102495
-> Player 1 shot Player 2 (LIVE)
-> Rounds [̭̌•]
+> Player 2 ranks shooting Player 0 as 1.2934366
+> Player 2 ranks shooting Player 1 as 1.2934366
+> Player 2 shot Player 1 (LIVE)
+> Rounds [??•]
 Total: 1
 Live: 1
 Blank: 0
-> Player 2 ranks shooting Player 0 as 4.2722626
-> Player 2 ranks shooting Player 1 as 2.08881
-> Player 2 shot Player 0 (LIVE)
+> Player 0 shot Player 0 (LIVE)
 > Rounds []
 Total: 0
 Live: 0
 Blank: 0
 > Loading Rounds
-LIVE:   2
+LIVE:   3
 BLANK:  3
-TOTAL:  5
-> Rounds [•o•ǒ̭o]
-Total: 5
-Live: 2
+TOTAL:  6
+> Rounds [o•o•o??•]
+Total: 6
+Live: 3
 Blank: 3
-> Player 0 shot Player 0 (BLANK)
-> Rounds [•o•̭̌o]
-Total: 4
-Live: 2
-Blank: 2
-> Player 0 shot Player 0 (BLANK)
-> Rounds [•ǒ̭•]
-Total: 3
-Live: 2
-Blank: 1
-> Player 0 shot Player 1 (LIVE)
-> Rounds [•̭̌o]
-Total: 2
-Live: 1
-Blank: 1
-> Player 1 ranks shooting Player 0 as 0.41034907
-> Player 1 ranks shooting Player 1 as 2.362096
-> Player 1 ranks shooting Player 2 as 0.28551248
-> Player 1 shot Player 1 (BLANK)
-> Rounds [̭̌•]
-Total: 1
-Live: 1
-Blank: 0
-> Player 1 ranks shooting Player 0 as 0.82069814
-> Player 1 ranks shooting Player 2 as 0.57102495
-> Player 1 shot Player 2 (LIVE)
-> Rounds []
-Total: 0
-Live: 0
-Blank: 0
-> Loading Rounds
-LIVE:   1
-BLANK:  4
-TOTAL:  5
-> Rounds [oo•ǒ̭o]
-Total: 5
-Live: 1
-Blank: 4
-> Player 2 ranks shooting Player 0 as 0.8544525
-> Player 2 ranks shooting Player 1 as 0.52345353
-> Player 2 ranks shooting Player 2 as 2.4048653
-> Player 2 shot Player 0 (BLANK)
-> Rounds [oo•̭̌o]
-Total: 4
-Live: 1
-Blank: 3
-> Player 0 shot Player 1 (BLANK)
-> Rounds [oǒ̭•]
-Total: 3
-Live: 1
-Blank: 2
-> Player 1 ranks shooting Player 0 as 0.27356607
-> Player 1 ranks shooting Player 1 as 3.5431437
-> Player 1 ranks shooting Player 2 as 0.46216738
+> Player 1 ranks shooting Player 0 as 1.1926941
+> Player 1 ranks shooting Player 1 as 3.5121307
+> Player 1 ranks shooting Player 2 as 0.21857217
 > Player 1 shot Player 1 (LIVE)
-> Rounds [ǒ̭o]
-Total: 2
-Live: 0
-Blank: 2
+> Rounds [o•o•??o]
+Total: 5
+Live: 2
+Blank: 3
+> Player 2 ranks shooting Player 0 as 0.6715169
+> Player 2 ranks shooting Player 2 as 3.6328676
 > Player 2 shot Player 2 (BLANK)
-> Rounds [̭̌o]
+> Rounds [o•o??•]
+Total: 4
+Live: 2
+Blank: 2
+> Player 2 ranks shooting Player 0 as 0.8393961
+> Player 2 ranks shooting Player 2 as 2.906294
+> Player 2 shot Player 2 (LIVE)
+> Rounds [o•??o]
+Total: 3
+Live: 1
+Blank: 2
+> Player 0 shot Player 2 (BLANK)
+> Rounds [o??•]
+Total: 2
+Live: 1
+Blank: 1
+> Player 2 ranks shooting Player 0 as 0.8393961
+> Player 2 ranks shooting Player 2 as 2.906294
+> Player 2 shot Player 2 (LIVE)
+> Rounds [??o]
 Total: 1
 Live: 0
 Blank: 1
-> Player 2 shot Player 2 (BLANK)
+> Player 0 shot Player 0 (BLANK)
 > Rounds []
 Total: 0
 Live: 0
@@ -124,14 +125,12 @@ Blank: 0
 LIVE:   3
 BLANK:  5
 TOTAL:  8
-> Rounds [o••oooǒ̭•]
+> Rounds [••ooooo??•]
 Total: 8
 Live: 3
 Blank: 5
-> Player 2 ranks shooting Player 0 as 1.6020983
-> Player 2 ranks shooting Player 2 as 1.2825949
-> Player 2 shot Player 2 (LIVE)
-> Rounds [o••ooǒ̭o]
+> Player 0 shot Player 0 (LIVE)
+> Rounds [••oooo??o]
 Total: 7
 Live: 2
 Blank: 5

@@ -31,10 +31,24 @@ void SafeInput(T& a_value) {
 }
 
 /// @brief Get a validated input.
+/// @tparam T A string type.
+/// @param a_value The value to feed into.
+template<typename T>
+requires(std::same_as<std::string, T>)
+void SafeInput(T& a_value) {
+    while (!(std::cin >> a_value)) {
+        std::cout << "INVALID INPUT" << std::endl;
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); 
+    }
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); 
+}
+
+/// @brief Get a validated input.
 /// @tparam T The type to get.
 /// @param a_value The value to feed into.
 template<typename T>
-requires(!std::integral<T> && !std::floating_point<T>)
+requires(!std::integral<T> && !std::floating_point<T> && !std::same_as<std::string, T>)
 void SafeInput(T& a_value) {
     while (!(std::cin >> a_value)) {
         std::cout << "INVALID INPUT" << std::endl;
