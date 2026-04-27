@@ -18,9 +18,17 @@ public:
 };
 
 int main(int argc, char** argv) {
-    std::cout << "M7T1" << std::endl;
+    std::cout << "Restaurant Reviews" << std::endl;
 
-    Restaurant restaurant1 = Restaurant("Abra", 2.0);
-    Restaurant restaurant2 = Restaurant("Abra", 4.0);
-    Restaurant restaurant3 = Restaurant("Abra", 3.0);
+    Restaurant restaurant1 = Restaurant("Cowfish", 4.7);
+    std::cout << restaurant1.name << "\n" << restaurant1.rating << std::endl;
+
+    Restaurant restaurant2 = Restaurant("Five Guys", 4.3);
+    std::cout << "Restaurant Name: ";
+    std::cin >> restaurant2.name;
+    std::cout << "Restaurant Rating: ";
+    std::cin >> restaurant2.rating;
+    std::cout << restaurant2.name << "\n" << restaurant2.rating << std::endl
+
+    
 }

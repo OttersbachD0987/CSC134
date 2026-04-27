@@ -102,6 +102,7 @@ enum class ItemType {
     BOOSTER,
     SWITCHER,
     BANDAGE,
+    //SARDINE,
     COUNT
 };
 
@@ -110,6 +111,7 @@ const char* ITEM_NAMES[(size_t)ItemType::COUNT] = {
     "Booster",
     "Switcher",
     "Bandage",
+    //"Sardine",
 };
 
 struct GameState;
@@ -382,7 +384,7 @@ int32_t Personality::EvaluateSituation(GameState& a_gameState, Player& a_player)
             }
             case ItemType::BANDAGE: {
                 if (a_player.lives < a_gameState.livesCount && RandF() * a_player.personality.paranoia - RandF() * a_player.personality.bloodlust > 0.0f) {
-                    std::println("{} wraps a \x1b[95mBANDAGE\x1b[39m around their arm", a_player.name);
+                    std::println("{} wraps a \x1b[92mBANDAGE\x1b[39m around their arm", a_player.name);
                     a_player.items[i] = ItemType::NONE;
                     ++a_player.lives;
                 }
@@ -449,6 +451,10 @@ int main(int argc, char** argv) {
     std::locale::global(std::locale("en_US.UTF-8"));
     bool doDelay = true;
     bool doConfirm = true;
+    bool noDisplay = false;
+    bool alwaysGamble = false;
+    bool alwaysFold = false;
+    uint32_t delayTime = 333;
     std::string players = "";
     for (int32_t i = 1; i < argc; ++i) {
         std::println("Arg ({}/{}) = '{}'", i, argc - 1, argv[i]);
@@ -456,8 +462,16 @@ int main(int argc, char** argv) {
             doDelay = false;
         } else if (strcmp(argv[i], "--nc") == 0) {
             doConfirm = false;
+        } else if (strcmp(argv[i], "--nv") == 0) {
+            noDisplay = true;
         } else if (strcmp(argv[i], "--players") == 0) {
             players = argv[++i];
+        } else if (strcmp(argv[i], "--delay") == 0) {
+            delayTime = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--ag") == 0) {
+            alwaysGamble = true;
+        } else if (strcmp(argv[i], "--af") == 0) {
+            alwaysFold = true;
         }
     }
     srand(time(0));
@@ -474,7 +488,10 @@ int main(int argc, char** argv) {
         player.lives = game.livesCount;
     }
     game.LoadRounds(ceilf((24 + game.currentGambit) * 0.12f), 1);
-    std::println("\x1b[H\x1b[2JGAMBIT {} | ROUND {}\n{} participants - {} rounds: {} live, {} blank", FormatNumberFancy(game.currentGambit), FormatNumberFancy(game.currentRound), game.players.size(), game.startingRoundCount, game.liveCount, game.startingRoundCount - game.liveCount);
+    std::println("\x1b[H\x1b[2JGAMBIT {} | ROUND {}\n{} rounds: {} live, {} blank", FormatNumberFancy(game.currentGambit), FormatNumberFancy(game.currentRound), game.startingRoundCount, game.liveCount, game.startingRoundCount - game.liveCount);
+    if (doDelay) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(delayTime * 3));
+    }
     if (doConfirm) EatInput();
     std::cout << "\x1b[2;1H\x1b[0J";
     bool running = true;
@@ -482,6 +499,7 @@ int main(int argc, char** argv) {
     while (running) {
         game.logFile.flush();
         Player& currentPlayer = game.players[game.currentTurn];
+        if (!noDisplay) {
         std::println("{}'s Turn", currentPlayer.name);
         for (const Player& player : game.players) {
             std::print("{:>2}) [", (player.id + 1));
@@ -497,6 +515,7 @@ int main(int argc, char** argv) {
             std::print("\x1b[{};24H\x1b[0K|{}) {}", i + 1, i + 1, ITEM_NAMES[(size_t)currentPlayer.items[i]]);
         }
         std::print("\x1b[{};1H\x1b[0J", 3 + game.players.size());
+        }
         if (currentPlayer.player) {
             int32_t choice;
             h:
@@ -528,7 +547,7 @@ int main(int argc, char** argv) {
                         }
                         case ItemType::BANDAGE: {
                             if (currentPlayer.lives < game.livesCount) {
-                                std::println("{} wraps a \x1b[95mBANDAGE\x1b[39m around their arm", currentPlayer.name);
+                                std::println("{} wraps a \x1b[92mBANDAGE\x1b[39m around their arm", currentPlayer.name);
                                 currentPlayer.items[choice] = ItemType::NONE;
                                 ++currentPlayer.lives;
                             }
@@ -553,20 +572,22 @@ int main(int argc, char** argv) {
             target = currentPlayer.personality.EvaluateSituation(game, currentPlayer);
             currentPlayer = game.players[game.currentTurn];
         }
-        
-        if (target == currentPlayer.id) {
-            std::print("{} puts the barrel to their chin", currentPlayer.name);
-        } else {
-            std::print("{} points the barrel at {}", currentPlayer.name, game.players[target].name);
-        }
 
-        if (doDelay) {
-            for (uint32_t i = 0; i < 3; ++i) {
-                std::print(".");
-                std::this_thread::sleep_for(std::chrono::milliseconds(333));
+        if (!noDisplay) {
+            if (target == currentPlayer.id) {
+                std::print("{} puts the barrel to their chin", currentPlayer.name);
+            } else {
+                std::print("{} points the barrel at {}", currentPlayer.name, game.players[target].name);
             }
+
+            if (doDelay) {
+                for (uint32_t i = 0; i < 3; ++i) {
+                    std::cout << "." << std::flush;
+                    std::this_thread::sleep_for(std::chrono::milliseconds(delayTime));
+                }
+            }
+            std::print("\n");
         }
-        std::print("\n");
 
         switch (game.Shoot(currentPlayer.id, target)) {
             case ShootResult::BLANK_OTHER:
@@ -584,6 +605,10 @@ int main(int argc, char** argv) {
                 game.forceTurn = false;
                 std::println("*BANG*");
                 break;
+        }
+
+        if (doDelay) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(delayTime * 3));
         }
 
         if (doConfirm) EatInput();
@@ -606,7 +631,13 @@ int main(int argc, char** argv) {
             game.players[alive].winnings += game.CurrentPot();
             int32_t choice;
             std::println("\x1b[H\x1b[2J\x1b[1m{}\x1b[22m is the winner.\n${}\n\n1) Another Gambit\n2) Fold", game.players[alive].name, std::format(std::locale(), "{:L}", game.players[alive].winnings));
-            BoundedInput<int32_t>("Choice: ", choice, 1, 2);
+            if (alwaysGamble) {
+                choice = 1;
+            } else if (alwaysFold) {
+                choice = 2;
+            } else {
+                BoundedInput<int32_t>("Choice: ", choice, 1, 2);
+            }
             if (choice == 1) {
                 ++game.currentGambit;
                 game.currentRound = 1;
@@ -615,11 +646,18 @@ int main(int argc, char** argv) {
                     player.lives = game.livesCount;
                 }
                 game.LoadRounds(ceilf((24 + game.currentGambit) * 0.12f), 1);
-                std::println("\x1b[H\x1b[2JGAMBIT {} | ROUND {}\n{} participants - {} rounds: {} live, {} blank", FormatNumberFancy(game.currentGambit), FormatNumberFancy(game.currentRound), game.players.size(), game.startingRoundCount, game.liveCount, game.startingRoundCount - game.liveCount);
+                std::println("\x1b[H\x1b[2JGAMBIT {} | ROUND {}\n{} rounds: {} live, {} blank", FormatNumberFancy(game.currentGambit), FormatNumberFancy(game.currentRound), game.startingRoundCount, game.liveCount, game.startingRoundCount - game.liveCount);
+                if (doDelay) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(delayTime * 3));
+                }
                 if (doConfirm) EatInput();
                 std::cout << "\x1b[2;1H\x1b[0J";
             } else if (choice == 2) {
                 running = false;
+                std::println("\x1b[H\x1b[2JPARTICIPANT | WINNINGS");
+                for (const Player& player : game.players) {
+                    std::println("{:11} | ${}", player.name, std::format(std::locale(), "{:L}", player.winnings));
+                }
             }
             continue;
         }
@@ -635,7 +673,10 @@ int main(int argc, char** argv) {
                     game.players[j].items[i] = (ItemType)(rand() % (int32_t)ItemType::COUNT);
                 }
             }
-            std::println("\x1b[H\x1b[2JGAMBIT {} | ROUND {}\n{} participants - {} rounds: {} live, {} blank", FormatNumberFancy(game.currentGambit), FormatNumberFancy(game.currentRound), game.players.size(), game.startingRoundCount, game.liveCount, game.startingRoundCount - game.liveCount);
+            std::println("\x1b[H\x1b[2JGAMBIT {} | ROUND {}\n{} rounds: {} live, {} blank", FormatNumberFancy(game.currentGambit), FormatNumberFancy(game.currentRound), game.startingRoundCount, game.liveCount, game.startingRoundCount - game.liveCount);
+            if (doDelay) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(delayTime * 3));
+            }
             if (doConfirm) EatInput();
             std::cout << "\x1b[2;1H\x1b[0J";
         } else {
