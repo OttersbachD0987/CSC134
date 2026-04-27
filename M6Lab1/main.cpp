@@ -101,13 +101,15 @@ enum class ItemType {
     NONE,
     BOOSTER,
     SWITCHER,
+    BANDAGE,
     COUNT
 };
 
 const char* ITEM_NAMES[(size_t)ItemType::COUNT] = {
     "None",
     "Booster",
-    "Switcher"
+    "Switcher",
+    "Bandage",
 };
 
 struct GameState;
@@ -378,6 +380,14 @@ int32_t Personality::EvaluateSituation(GameState& a_gameState, Player& a_player)
                 }
                 break;
             }
+            case ItemType::BANDAGE: {
+                if (a_player.lives < a_gameState.livesCount && RandF() * a_player.personality.paranoia - RandF() * a_player.personality.bloodlust > 0.0f) {
+                    std::println("{} wraps a \x1b[95mBANDAGE\x1b[39m around their arm", a_player.name);
+                    a_player.items[i] = ItemType::NONE;
+                    ++a_player.lives;
+                }
+                break;
+            }
         }
     } 
 
@@ -515,6 +525,13 @@ int main(int argc, char** argv) {
                                 game.rounds[game.rounds.size() - 1] = ShellType::BLANK;
                             }
                             break;
+                        }
+                        case ItemType::BANDAGE: {
+                            if (currentPlayer.lives < game.livesCount) {
+                                std::println("{} wraps a \x1b[95mBANDAGE\x1b[39m around their arm", currentPlayer.name);
+                                currentPlayer.items[choice] = ItemType::NONE;
+                                ++currentPlayer.lives;
+                            }
                         }
                     }
                     for (int32_t i = 0; i < 4; ++i) {
