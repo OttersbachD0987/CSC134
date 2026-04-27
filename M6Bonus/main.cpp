@@ -11,6 +11,7 @@
 #include <fstream>
 #include <cmath>
 #include <string>
+#include <corecrt_math_defines.h>
 
 void SingleFrame(std::string a_name, int32_t a_bar) {
     std::ofstream file = std::ofstream(a_name, std::ios::binary);

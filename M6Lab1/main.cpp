@@ -4,6 +4,7 @@
 // 3/18/2026
 
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <cstdint>
 #include <vector>
@@ -13,6 +14,7 @@
 #include <fstream>
 #include <thread>
 #include <chrono>
+#include <locale>
 
 #if defined(_WIN32)
 #define NOMINMAX
@@ -50,9 +52,9 @@ template<std::integral T>
 void BoundedInput(const char* a_prompt, T& a_value, T a_min, T a_max) {
     std::cout << a_prompt;
     while (!(std::cin >> a_value) || a_value < a_min || a_value > a_max) {
-        std::cout << "INVALID INPUT" << std::endl;
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); 
+        std::cout << "\x1b[F\x1b[0J" << a_prompt;
     }
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); 
 }
@@ -65,9 +67,9 @@ template<typename T>
 void SafeInput(const char* a_prompt, T& a_value) {
     std::cout << a_prompt;
     while (!(std::cin >> a_value)) {
-        std::cout << "INVALID INPUT" << std::endl;
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); 
+        std::cout << "\x1b[F\x1b[0J" << a_prompt;
     }
 }
 
@@ -95,9 +97,16 @@ enum class ShootResult {
 };
 
 enum class ItemType {
-    NONE = -1,
+    NONE,
     BOOSTER,
     SWITCHER,
+    COUNT
+};
+
+const char* ITEM_NAMES[(size_t)ItemType::COUNT] = {
+    "None",
+    "Booster",
+    "Switcher"
 };
 
 struct GameState;
@@ -113,7 +122,7 @@ public:
     float retribution; // Prefer targeting damagers
     float antagonism;  // Prefer targeting others
 
-    int32_t EvaluateSituation(GameState& a_gameState, const Player& a_player);
+    int32_t EvaluateSituation(GameState& a_gameState, Player& a_player);
 
     void DebugInfo(std::ostream& a_stream);
 };
@@ -124,9 +133,16 @@ public:
     int32_t id;
     int32_t lives;
     int32_t lastHurt;
+    int64_t winnings;
     ItemType items[4];
     std::string name;
     Personality personality;
+};
+
+enum class GameInitializationMode {
+    BY_STRING,
+    BY_INPUT,
+    ALL_AI,
 };
 
 struct GameState {
@@ -139,9 +155,12 @@ public:
     int32_t livesCount;
     int32_t currentRound;
     int32_t currentGambit;
+    int64_t lastPot;
+    int64_t winnings;
+    bool forceTurn;
     std::ofstream logFile;
 
-    GameState(int32_t a_playerCount) {
+    GameState(void) {
         this->logFile = std::ofstream("Logs/BuckshotLogs.log");
         this->players = std::vector<Player>();
         this->rounds = std::vector<ShellType>();
@@ -151,7 +170,13 @@ public:
         this->livesCount = 0;
         this->currentRound = 1;
         this->currentGambit = 1;
+        this->lastPot = 50000;
+        this->forceTurn = false;
         logFile << ">>> NEW BUCKSHOT INSTANCE <<<\n";
+        
+    }
+
+    void PlayersByInput(int32_t a_playerCount) {
         int32_t type;
         int32_t aiNumber = 1;
         std::string name;
@@ -162,7 +187,7 @@ public:
             switch (type) {
                 case 1: {
                     SafeInput<std::string>("Name: ", name);
-                    this->players.push_back(Player{true, i, 4, -1, 
+                    this->players.push_back(Player{true, i, 4, -1, 0,
                         {ItemType::NONE, ItemType::NONE, ItemType::NONE, ItemType::NONE},
                         name,
                         Personality{
@@ -178,7 +203,7 @@ public:
                     break;
                 }
                 case 2: {
-                    this->players.push_back(Player{false, i, 4, -1,
+                    this->players.push_back(Player{false, i, 4, -1, 0,
                         {ItemType::NONE, ItemType::NONE, ItemType::NONE, ItemType::NONE},
                         std::format("AI {}", aiNumber++),
                         Personality{
@@ -197,6 +222,51 @@ public:
             logFile << "> Player " << (i) << "\n";
             if (type == 2) {
                 players.back().personality.DebugInfo(logFile);
+            }
+        }
+    }
+
+    void PlayersByString(std::string a_players) {
+        int32_t aiNumber = 1;
+        std::string name;
+
+        for (int32_t i = 0; i < a_players.size(); ++i) {
+            logFile << "> Player " << (i) << "\n";
+            switch (toupper(a_players[i])) {
+                case 'P': {
+                    SafeInput<std::string>("Name: ", name);
+                    this->players.push_back(Player{true, i, 4, -1, 0,
+                        {ItemType::NONE, ItemType::NONE, ItemType::NONE, ItemType::NONE},
+                        name,
+                        Personality{
+                            0.0f, 
+                            0.0f, 
+                            0.0f, 
+                            0.0f, 
+                            0.0f, 
+                            0.0f, 
+                            0.0f
+                        }
+                    });
+                    break;
+                }
+                case 'A': {
+                    this->players.push_back(Player{false, i, 4, -1, 0,
+                        {ItemType::NONE, ItemType::NONE, ItemType::NONE, ItemType::NONE},
+                        std::format("AI {}", aiNumber++),
+                        Personality{
+                            0.5f + RandF(),
+                            0.5f + RandF() * 1.5f,
+                            0.5f + RandF() * 1.5f,
+                            0.5f + RandF() * 1.5f,
+                            0.5f + RandF() * 1.5f,
+                            0.5f + RandF() * 1.5f,
+                            0.5f + RandF() * 1.5f,
+                        }
+                    });
+                    players.back().personality.DebugInfo(logFile);
+                    break;
+                }
             }
         }
     }
@@ -255,16 +325,60 @@ public:
             NextTurn();
         }
     }
+
+    int64_t CurrentPot(void) {
+        winnings = lastPot;
+        lastPot += 50000 * (1.0f + RandF() + logf(currentGambit));
+        return winnings;
+    }
 };
 
-int32_t Personality::EvaluateSituation(GameState& a_gameState, const Player& a_player) {
+
+int32_t Personality::EvaluateSituation(GameState& a_gameState, Player& a_player) {
     float chanceLive = (float)a_gameState.liveCount / (float)a_gameState.rounds.size();
     if (chanceLive <= 0.0f) {
         return a_player.id;
     } 
-
     bool isLive = chanceLive >= 1.0f;
     chanceLive *= caution;
+
+    float switchMod = 0.5f;
+    bool boosted = false;
+
+    for (int32_t i = 0; i < 4; ++i) {
+        switch (a_player.items[i]) {
+            case ItemType::BOOSTER: {
+                if (!boosted && RandF() < chanceLive) {
+                    std::println("{} injects themselves with a \x1b[95mBOOSTER\x1b[39m", a_player.name);
+                    a_player.items[i] = ItemType::NONE;
+                    a_gameState.forceTurn = true;
+                    boosted = true;
+                }
+                break;
+            }
+            case ItemType::SWITCHER: {
+                if (RandF() < switchMod) {
+                    std::println("{} flicks a \x1b[91mS\x1b[96mw\x1b[91mI\x1b[96mt\x1b[91mC\x1b[96mh\x1b[91mE\x1b[96mr\x1b[39m", a_player.name);
+                    a_player.items[i] = ItemType::NONE;
+                    if (a_gameState.rounds.back() == ShellType::BLANK) {
+                        ++a_gameState.liveCount;
+                        a_gameState.rounds[a_gameState.rounds.size() - 1] = ShellType::LIVE;
+                    } else {
+                        --a_gameState.liveCount;
+                        a_gameState.rounds[a_gameState.rounds.size() - 1] = ShellType::BLANK;
+                    }
+                    chanceLive = (float)a_gameState.liveCount / (float)a_gameState.rounds.size();
+                    if (chanceLive <= 0.0f) {
+                        return a_player.id;
+                    } 
+                    isLive = chanceLive >= 1.0f;
+                    chanceLive *= caution;
+                    switchMod *= 0.5f;
+                }
+                break;
+            }
+        }
+    } 
 
     std::vector<std::pair<int32_t, float>> targetEvaluations = std::vector<std::pair<int32_t, float>>();
 
@@ -311,17 +425,47 @@ void Personality::DebugInfo(std::ostream& a_stream) {
     a_stream << std::format("Caution:     {:<5.3f}\nParanoia:    {:5.3f}\nAggression:  {:5.3f}\nSadism:      {:5.3f}\nBloodlust:   {:5.3f}\nRetribution: {:5.3f}\nAntagonism:  {:5.3f}\n", caution, paranoia, aggression, sadism, bloodlust, retribution, antagonism);
 }
 
+std::string FormatNumberFancy(int32_t a_number) {
+    std::string returner = "\x1b[38;5;8m";
+    for (int i = 0; i < (a_number < 10 ? 2 : (a_number < 100 ? 1 : 0)); ++i) {
+        returner += "0";
+    }
+    returner += std::format("\x1b[39m{}", a_number);
+    return returner;
+}
+
 int main(int argc, char** argv) {
+    std::locale::global(std::locale("en_US.UTF-8"));
+    bool doDelay = true;
+    bool doConfirm = true;
+    std::string players = "";
+    for (int32_t i = 1; i < argc; ++i) {
+        std::println("Arg ({}/{}) = '{}'", i, argc - 1, argv[i]);
+        if (strcmp(argv[i], "--nd") == 0) {
+            doDelay = false;
+        } else if (strcmp(argv[i], "--nc") == 0) {
+            doConfirm = false;
+        } else if (strcmp(argv[i], "--players") == 0) {
+            players = argv[++i];
+        }
+    }
     srand(time(0));
-    int32_t participants = 2;
-    BoundedInput<int32_t>("Number of players: ", participants, 2, std::numeric_limits<int32_t>::max());
-    GameState game = GameState(participants);
+    GameState game = GameState();
+    if (players.empty()) {
+        int32_t participants = 2;
+        BoundedInput<int32_t>("Number of players: ", participants, 2, std::numeric_limits<int32_t>::max());
+        game.PlayersByInput(participants);
+    } else {
+        game.PlayersByString(players);
+    }
     game.livesCount = rand() % (int32_t)ceilf(logf(game.currentGambit + 1)) + 3;
     for (Player& player : game.players) {
         player.lives = game.livesCount;
     }
     game.LoadRounds(ceilf((24 + game.currentGambit) * 0.12f), 1);
-    std::println("\x1b[H\x1b[2JGAMBIT {:<3} | ROUND {}\n{} participants - {} rounds: {} live, {} blank", game.currentGambit, game.currentRound, game.players.size(), game.startingRoundCount, game.liveCount, game.startingRoundCount - game.liveCount);
+    std::println("\x1b[H\x1b[2JGAMBIT {} | ROUND {}\n{} participants - {} rounds: {} live, {} blank", FormatNumberFancy(game.currentGambit), FormatNumberFancy(game.currentRound), game.players.size(), game.startingRoundCount, game.liveCount, game.startingRoundCount - game.liveCount);
+    if (doConfirm) EatInput();
+    std::cout << "\x1b[2;1H\x1b[0J";
     bool running = true;
     int32_t target = 0;
     while (running) {
@@ -338,21 +482,48 @@ int main(int argc, char** argv) {
             }
             std::cout << "] " << player.name << std::endl;
         }
+        for (int32_t i = 0; i < 4; ++i) {
+            std::print("\x1b[{};24H\x1b[0K|{}) {}", i + 1, i + 1, ITEM_NAMES[(size_t)currentPlayer.items[i]]);
+        }
+        std::print("\x1b[{};1H\x1b[0J", 3 + game.players.size());
         if (currentPlayer.player) {
             int32_t choice;
             h:
-            BoundedInput<int32_t>("1) Items\n2) Shoot\nChoice: ", choice, 1, 2);
+            BoundedInput<int32_t>(std::format("\x1b[{};1H\x1b[0J1) Items\n2) Shoot\nChoice: ", 3 + game.players.size()).c_str(), choice, 1, 2);
             switch (choice) {
                 case 1: {
                     for (int32_t i = 0; i < 4; ++i) {
-                        std::println("");
+                        std::print("\x1b[{};24H\x1b[0K|{}) {}", i + 1, i + 1, ITEM_NAMES[(size_t)currentPlayer.items[i]]);
                     }
-                    BoundedInput<int32_t>("Item: ", choice, 1, 4);
+                    BoundedInput<int32_t>(std::format("\x1b[{};1H\x1b[0JItem: ", 3 + game.players.size()).c_str(), choice, 1, 4);
+                    switch (currentPlayer.items[--choice]) {
+                        case ItemType::BOOSTER: {
+                            std::println("{} injects themselves with a \x1b[95mBOOSTER\x1b[39m", currentPlayer.name);
+                            currentPlayer.items[choice] = ItemType::NONE;
+                            game.forceTurn = true;
+                            break;
+                        }
+                        case ItemType::SWITCHER: {
+                            std::println("{} flicks a \x1b[91mS\x1b[96mw\x1b[91mI\x1b[96mt\x1b[91mC\x1b[96mh\x1b[91mE\x1b[96mr\x1b[39m", currentPlayer.name);
+                            currentPlayer.items[choice] = ItemType::NONE;
+                            if (game.rounds.back() == ShellType::BLANK) {
+                                ++game.liveCount;
+                                game.rounds[game.rounds.size() - 1] = ShellType::LIVE;
+                            } else {
+                                --game.liveCount;
+                                game.rounds[game.rounds.size() - 1] = ShellType::BLANK;
+                            }
+                            break;
+                        }
+                    }
+                    for (int32_t i = 0; i < 4; ++i) {
+                        std::print("\x1b[{};24H\x1b[0K|{}) {}", i + 1, i + 1, ITEM_NAMES[(size_t)currentPlayer.items[i]]);
+                    }
                     goto h;
                 }
                 case 2: {
                     do {
-                        BoundedInput<int32_t>("Target: ", target, 1, (int32_t)game.players.size() + 1);
+                        BoundedInput<int32_t>(std::format("\x1b[{};1H\x1b[0JTarget: ", 3 + game.players.size()).c_str(), target, 1, (int32_t)game.players.size() + 1);
                         if (--target == game.players.size()) {
                             goto h;
                         }
@@ -371,25 +542,33 @@ int main(int argc, char** argv) {
             std::print("{} points the barrel at {}", currentPlayer.name, game.players[target].name);
         }
 
-        for (uint32_t i = 0; i < 3; ++i) {
-            std::print(".");
-            std::this_thread::sleep_for(std::chrono::milliseconds(333));
+        if (doDelay) {
+            for (uint32_t i = 0; i < 3; ++i) {
+                std::print(".");
+                std::this_thread::sleep_for(std::chrono::milliseconds(333));
+            }
         }
         std::print("\n");
 
         switch (game.Shoot(currentPlayer.id, target)) {
             case ShootResult::BLANK_OTHER:
-                game.NextTurn();
+                if (!game.forceTurn) {
+                    game.NextTurn();
+                }
+                game.forceTurn = false;
             case ShootResult::BLANK_SELF:
                 std::println("*click*");
                 break;
             case ShootResult::LIVE:
-                game.NextTurn();
+                if (!game.forceTurn) {
+                    game.NextTurn();
+                }
+                game.forceTurn = false;
                 std::println("*BANG*");
                 break;
         }
 
-        EatInput();
+        if (doConfirm) EatInput();
 
         int32_t alive = -1;
         for (const Player& player : game.players) {
@@ -400,12 +579,15 @@ int main(int argc, char** argv) {
                     alive = -1;
                     break;
                 }
+            } else if (player.id == currentPlayer.id) {
+                game.NextTurn();
             }
         }
 
         if (alive != -1) {
+            game.players[alive].winnings += game.CurrentPot();
             int32_t choice;
-            std::println("\x1b[H\x1b[2J{} is the winner.\n\n1) Another Gambit\n2) Fold", game.players[alive].name);
+            std::println("\x1b[H\x1b[2J\x1b[1m{}\x1b[22m is the winner.\n${}\n\n1) Another Gambit\n2) Fold", game.players[alive].name, std::format(std::locale(), "{:L}", game.players[alive].winnings));
             BoundedInput<int32_t>("Choice: ", choice, 1, 2);
             if (choice == 1) {
                 ++game.currentGambit;
@@ -415,7 +597,9 @@ int main(int argc, char** argv) {
                     player.lives = game.livesCount;
                 }
                 game.LoadRounds(ceilf((24 + game.currentGambit) * 0.12f), 1);
-                std::println("\x1b[H\x1b[2JGAMBIT {:<3} | ROUND {}\n{} participants - {} rounds: {} live, {} blank", game.currentGambit, game.currentRound, game.players.size(), game.startingRoundCount, game.liveCount, game.startingRoundCount - game.liveCount);
+                std::println("\x1b[H\x1b[2JGAMBIT {} | ROUND {}\n{} participants - {} rounds: {} live, {} blank", FormatNumberFancy(game.currentGambit), FormatNumberFancy(game.currentRound), game.players.size(), game.startingRoundCount, game.liveCount, game.startingRoundCount - game.liveCount);
+                if (doConfirm) EatInput();
+                std::cout << "\x1b[2;1H\x1b[0J";
             } else if (choice == 2) {
                 running = false;
             }
@@ -428,7 +612,14 @@ int main(int argc, char** argv) {
                 (int32_t)ceilf(((5.0f * (1.0f - 1.0f / powf(game.currentRound, game.currentGambit))) + logf((float)game.currentRound)) * (24 + game.currentGambit) * 0.04f), 
                 (int32_t)ceilf(log10f(powf((float)(game.currentRound + 1), 3.0f)))
             );
-            std::println("\x1b[H\x1b[2JGAMBIT {:<3} | ROUND {}\n{} participants - {} rounds: {} live, {} blank", game.currentGambit, game.currentRound, game.players.size(), game.startingRoundCount, game.liveCount, game.startingRoundCount - game.liveCount);
+            for (int32_t i = 0; i < 4; ++i) {
+                for (int32_t j = 0; j < game.players.size(); ++j) {
+                    game.players[j].items[i] = (ItemType)(rand() % (int32_t)ItemType::COUNT);
+                }
+            }
+            std::println("\x1b[H\x1b[2JGAMBIT {} | ROUND {}\n{} participants - {} rounds: {} live, {} blank", FormatNumberFancy(game.currentGambit), FormatNumberFancy(game.currentRound), game.players.size(), game.startingRoundCount, game.liveCount, game.startingRoundCount - game.liveCount);
+            if (doConfirm) EatInput();
+            std::cout << "\x1b[2;1H\x1b[0J";
         } else {
             std::cout << "\x1b[2;1H\x1b[0J";
         }
