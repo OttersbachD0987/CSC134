@@ -29,6 +29,7 @@ void GetTerminalSize(uint32_t& a_cols, uint32_t& a_rows) {
 }
 #elif defined(__linux__) || defined(__APPLE__)
 #include <cmath>
+#include <cstring>
 #include <sys/ioctl.h>
 void GetTerminalSize(uint32_t& a_cols, uint32_t& a_rows) {
     struct winsize window;
