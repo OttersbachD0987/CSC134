@@ -5,6 +5,8 @@
 
 #include <iostream>
 #include <string>
+#include "Rectangle.h"
+
 
 void Input(std::string& a_val) {
     std::getline(std::cin, a_val);
@@ -13,6 +15,7 @@ void Input(std::string& a_val) {
 int main(int argc, char** argv) {
     std::string name = "Bob";
     std::string* p_name = &name;
+    
     std::cout << "name    = " << name << std::endl;
     std::cout << "p_name  = " << p_name << std::endl;
     std::cout << "*p_name = " << *p_name << std::endl;
@@ -29,4 +32,6 @@ int main(int argc, char** argv) {
     std::cout << "name    = " << name << std::endl;
     std::cout << "p_name  = " << p_name << std::endl;
     std::cout << "*p_name = " << *p_name << std::endl;
+
+    Rectangle ra = Rectangle{2, 4};
 }
