@@ -30,5 +30,8 @@ int main(int argc, char** argv) {
     std::cin >> restaurant2.rating;
     std::cout << restaurant2.name << "\n" << restaurant2.rating << std::endl
 
+    Restaurant restaurant3 = Restaurant("Burger Bar", 2.7);
+    std::cout << restaurant3.name << "\n" << restaurant3.rating << std::endl;
+
     
 }
