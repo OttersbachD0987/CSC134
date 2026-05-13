@@ -243,6 +243,8 @@ public:
             }
 
             if (neighbors.size() <= 0) {
+                closedSet[row * rowss + col] = true;
+                openSet.erase(openSet.begin() + choice);
             } else {
                 auto opt = neighbors[grid.random(0, neighbors.size() - 1)];
                 std::cout << row << ", " << col << ": " << opt << std::endl;
@@ -270,8 +272,6 @@ public:
                         break;
                 }
             }
-            closedSet[row * rowss + col] = true;
-            openSet.erase(openSet.begin() + choice);
         }
     }
 };
