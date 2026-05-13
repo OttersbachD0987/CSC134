@@ -5,33 +5,24 @@
 
 #include <iostream>
 #include <string>
+#include <limits>
 #include "Rectangle.h"
 
 
-void Input(std::string& a_val) {
-    std::getline(std::cin, a_val);
+void BoundedInput(uint32_t& a_value) {
+    while (!(std::cin >> a_value) || a_value < 0) {
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    }
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); 
 }
 
 int main(int argc, char** argv) {
-    std::string name = "Bob";
-    std::string* p_name = &name;
-    
-    std::cout << "name    = " << name << std::endl;
-    std::cout << "p_name  = " << p_name << std::endl;
-    std::cout << "*p_name = " << *p_name << std::endl;
-
-    std::cout << "New Name: ";
-    Input(name);
-
-    std::cout << "name    = " << name << std::endl;
-    std::cout << "p_name  = " << p_name << std::endl;
-    std::cout << "*p_name = " << *p_name << std::endl;
-
-    *p_name = "Ana";
-
-    std::cout << "name    = " << name << std::endl;
-    std::cout << "p_name  = " << p_name << std::endl;
-    std::cout << "*p_name = " << *p_name << std::endl;
-
     Rectangle ra = Rectangle{2, 4};
+    std::cout << "Rectangle width: ";
+    BoundedInput(ra.width);
+    std::cout << "Rectangle height: ";
+    BoundedInput(ra.height);
+    std::cout << "Rectangle area: " << ra.GetArea() << std::endl;
+    ra.Draw();
 }
