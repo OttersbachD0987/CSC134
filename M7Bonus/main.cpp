@@ -147,6 +147,7 @@ int main()
 {
     Character hero("Aldric", 100, 15, 12, 10, Weapon("Mace", 5, 2, 16));
     hero.display();
+    hero.GetWeapon().DisplayInfo();
     
     std::cout << "\n--- Battle with Goblin! ---" << std::endl;
     hero.takeDamage(25);
